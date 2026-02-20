@@ -3,6 +3,11 @@
 *February 2026 — School Project / Simplified Architecture*
 
 ---
+## What Is This?
+
+iCloud Photo Downloader is an application that lets you download your photos from iCloud by albums without the need of having a Mac. You pick the albums you want, and the app downloads them. No Mac needed.
+
+---
 
 ## Table of Contents
 
