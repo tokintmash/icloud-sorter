@@ -1,0 +1,67 @@
+import sys
+from pathlib import Path
+
+# Ensure the project root is on sys.path so that `python app.py` works
+# (must run before any `backend.*` imports)
+_project_root = str(Path(__file__).resolve().parent.parent)
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+
+from backend.models.db import init_db
+from backend.routers import auth, albums, download, settings
+
+app = FastAPI(title="iCloud Photo Downloader", version="1.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth.router)
+app.include_router(albums.router)
+app.include_router(download.router)
+app.include_router(settings.router)
+
+FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+
+if FRONTEND_DIST.is_dir():
+    app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="static-assets")
+
+
+@app.on_event("startup")
+async def startup() -> None:
+    init_db()
+
+
+@app.get("/{full_path:path}", response_model=None)
+async def spa_fallback(request: Request, full_path: str) -> FileResponse | JSONResponse:
+    if full_path.startswith("api/"):
+        return JSONResponse(status_code=404, content={"error": "not_found", "message": "API endpoint not found"})
+
+    if FRONTEND_DIST.is_dir():
+        file_path = FRONTEND_DIST / full_path
+        if file_path.is_file():
+            return FileResponse(str(file_path))
+
+        index_path = FRONTEND_DIST / "index.html"
+        if index_path.is_file():
+            return FileResponse(str(index_path))
+
+    return JSONResponse(
+        status_code=404,
+        content={"error": "not_found", "message": "Frontend not built. Run 'npm run build' in frontend/"},
+    )
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("backend.app:app", host="0.0.0.0", port=8000, reload=True)
