@@ -28,7 +28,7 @@ The app does not delete anything from iCloud. Once an album is fully downloaded,
 8. [Download Pipeline](#8-download-pipeline)
 9. [Project Structure](#9-project-structure)
 10. [Docker & Kubernetes](#10-docker--kubernetes)
-11. [AWS Infrastructure](#11-aws-infrastructure)
+11. [Deployment Options](#11-deployment-options)
 12. [Risk Assessment](#12-risk-assessment)
 13. [Implementation Phases](#13-implementation-phases)
 
@@ -830,9 +830,90 @@ spec:
 
 ---
 
-## 11. AWS Infrastructure
+## 11. Deployment Options
 
-### Required Services
+The application is built as Docker containers — it runs identically on AWS or a simple VPS. The team should pick one based on cost, complexity, and school requirements.
+
+### Option A: VPS (Single Virtual Server)
+
+**How it works:** One VM running Docker Compose. Same architecture as local development, just on a public server. This mirrors the deployment approach the team has already used (Spring Boot + Next.js on a VM with Nginx and GitHub Actions).
+
+**Architecture:**
+
+```
+┌─────────────────────────────────────────────────────┐
+│  VPS (e.g., Hetzner, DigitalOcean, school-provided) │
+│                                                      │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  Nginx (reverse proxy + SSL)                    │ │
+│  │  - /        → frontend:80                       │ │
+│  │  - /api/*   → backend:8000                      │ │
+│  │  - /files/* → serve local downloads             │ │
+│  │  - Let's Encrypt (Certbot) for HTTPS            │ │
+│  └─────────────────────────────────────────────────┘ │
+│                                                      │
+│  ┌──────────┐ ┌──────────┐ ┌────────────────────┐   │
+│  │ Frontend │ │ Backend  │ │ Celery Worker      │   │
+│  │ (Nginx)  │ │ (FastAPI)│ │ (background DLs)   │   │
+│  └──────────┘ └──────────┘ └────────────────────┘   │
+│                                                      │
+│  ┌──────────┐ ┌──────────┐ ┌────────────────────┐   │
+│  │PostgreSQL│ │  Redis   │ │ Local disk volume  │   │
+│  │(container)│ │(container)│ │ /data/downloads/  │   │
+│  └──────────┘ └──────────┘ └────────────────────┘   │
+└─────────────────────────────────────────────────────┘
+```
+
+**What replaces AWS services:**
+
+| AWS Service | VPS Replacement |
+|-------------|----------------|
+| **EKS** | Docker Compose (no Kubernetes needed) |
+| **RDS** | PostgreSQL container with a Docker volume |
+| **ElastiCache** | Redis container |
+| **S3** | Local disk volume (`/data/downloads/`) or MinIO container (S3-compatible) |
+| **ALB** | Nginx container with Let's Encrypt |
+| **ECR** | GitHub Container Registry (free) or Docker Hub |
+
+**File storage:** Instead of S3 presigned URLs, the backend serves files directly from local disk. Nginx can serve the download directory as static files, or the API generates download links that Nginx serves. Same 24-hour cleanup via a cron job instead of S3 lifecycle policy.
+
+**CI/CD (same pattern as team's existing projects):**
+
+1. Push to `main` triggers GitHub Actions workflow
+2. Build Docker images on a self-hosted runner (on the VM) or build and SCP
+3. SSH into VM, pull/build images, run `docker compose up -d`
+4. Secrets managed via GitHub Secrets → `.env.production`
+
+**Providers and costs:**
+
+| Provider | Spec | Price |
+|----------|------|-------|
+| **Hetzner** (EU) | CX22: 2 vCPU, 4 GB RAM, 40 GB disk | **€4.35/mo** (~$5) |
+| **Hetzner** (EU) | CX32: 4 vCPU, 8 GB RAM, 80 GB disk | **€7.35/mo** (~$8) |
+| **DigitalOcean** | Basic: 2 vCPU, 4 GB RAM, 80 GB disk | **$24/mo** |
+| **School-provided VM** | Varies | **$0** |
+
+**Estimated total:** **~$5–$25/month** (or $0 if school provides a VM)
+
+**Pros:**
+- ✅ Cheap — 5–10× less than AWS
+- ✅ Simple — the team already knows this deployment pattern
+- ✅ No vendor lock-in — standard Docker Compose, runs anywhere
+- ✅ No managed services to learn (no EKS, no RDS console, no IAM policies)
+
+**Cons:**
+- ❌ Does not satisfy a Kubernetes requirement (if that's a hard school requirement)
+- ❌ No auto-scaling — single server, fixed capacity
+- ❌ You manage everything: backups, updates, SSL renewal, disk space
+- ❌ If the server dies, everything is gone (unless you set up backups)
+
+---
+
+### Option B: AWS (Managed Cloud)
+
+**How it works:** Docker containers deployed on Kubernetes (EKS or k3s on EC2), with managed PostgreSQL (RDS) and S3 for file storage.
+
+**Required Services:**
 
 | Service | Purpose | Free Tier | Estimated Cost (Beyond Free Tier) |
 |---------|---------|-----------|-----------------------------------|
@@ -846,18 +927,42 @@ spec:
 
 **Estimated total:** ~$130–$150/month
 
-### Cost-Saving Alternatives for School Project
-
-| Saving | Change | Impact |
-|--------|--------|--------|
-| **-$73/mo** | Use **k3s on EC2** instead of EKS | Same K8s API, self-managed control plane |
-| **-$12/mo** | Run Redis as a **K8s pod** instead of ElastiCache | No HA, but fine for school |
-| **-$16/mo** | Use **NodePort** + direct EC2 access instead of ALB | No HTTPS/load balancing, but works for demo |
-| **-$30/mo** | Use **single t3.medium** instead of 2× t3.small | All pods on one node |
-
 **Budget option:** Single t3.medium EC2 ($33/mo) + k3s + Redis pod + RDS free tier + S3 = **~$35/month**
 
-### S3 Lifecycle Policy
+**Pros:**
+- ✅ Satisfies Kubernetes/AWS school requirement
+- ✅ Demonstrates cloud-native architecture (good for grades and resume)
+- ✅ Managed services (RDS backups, S3 durability, ALB health checks)
+- ✅ Scalable — add worker pods for more download capacity
+
+**Cons:**
+- ❌ Expensive — 5–30× more than a VPS
+- ❌ Complex — many services to configure (IAM, VPC, security groups, EKS)
+- ❌ AWS learning curve if team isn't familiar
+- ❌ Easy to accidentally leave resources running and rack up costs
+
+---
+
+### Side-by-Side Comparison
+
+| Criteria | VPS | AWS |
+|----------|-----|-----|
+| **Monthly cost** | $5–$25 | $35–$150 |
+| **Kubernetes** | ❌ No (Docker Compose) | ✅ Yes (EKS or k3s) |
+| **Setup complexity** | Low — team has done this before | High — many AWS services to wire together |
+| **File storage** | Local disk + cron cleanup | S3 + lifecycle policy |
+| **SSL/HTTPS** | Let's Encrypt + Certbot | ALB handles it |
+| **CI/CD** | GitHub Actions + SSH (existing pattern) | GitHub Actions + ECR + kubectl |
+| **Scalability** | Single server | Add pods/nodes as needed |
+| **Disaster recovery** | Manual backups | RDS auto-backup, S3 11-nines durability |
+| **Code changes needed** | Minor — swap S3 for local disk | None — plan as written |
+| **School cloud requirement** | ⚠️ May not satisfy | ✅ Satisfies fully |
+
+**[TEAM DECISION NEEDED]:** Is Kubernetes a hard requirement from the school, or is "deployed on a cloud server with Docker" sufficient? This is the deciding factor.
+
+### S3 / File Cleanup Policy
+
+**AWS (S3):**
 
 ```json
 {
@@ -872,6 +977,13 @@ spec:
 }
 ```
 
+**VPS (cron job):**
+
+```bash
+# Add to crontab: delete downloaded files older than 24 hours
+0 * * * * find /data/downloads -type f -mmin +1440 -delete
+```
+
 ---
 
 ## 12. Risk Assessment
@@ -883,8 +995,8 @@ spec:
 | 3 | **pyicloud ecosystem stagnation** | 🟡 Medium | Medium | We depend on pyicloud directly; monitor and update |
 | 4 | **Session expiry (every ~2 months)** | 🟢 Low | Certain | Clear UX for re-authentication |
 | 5 | **Credential trust** | 🟡 Medium | N/A (accepted for school) | Display clear disclaimer; HTTPS only; don't log credentials |
-| 6 | **AWS costs overrun** | 🟡 Medium | Medium | Use budget alerts; k3s instead of EKS; shut down when not demoing |
-| 7 | **S3 storage costs** | 🟢 Low | Low | 24-hour lifecycle policy; per-user quota (10 GB) |
+| 6 | **Infrastructure costs** | 🟡 Medium | Medium | VPS: ~$5–25/mo, predictable. AWS: use budget alerts; k3s instead of EKS; shut down when not demoing |
+| 7 | **File storage costs** | 🟢 Low | Low | VPS: local disk, cron cleanup. AWS: S3 lifecycle policy; per-user quota (10 GB) |
 | 8 | **K8s complexity** | 🟡 Medium | Medium | Start with docker-compose locally; move to K8s once app works |
 
 ### New Risks (vs MVP Plan)
@@ -892,8 +1004,8 @@ spec:
 These risks are new in the cloud deployment:
 
 - **Credential trust:** Users send Apple credentials to our server (accepted for school project)
-- **AWS costs:** Monthly infrastructure costs; mitigated with budget option
-- **Kubernetes learning curve:** Team must learn K8s deployment, debugging, and manifests
+- **Infrastructure costs:** VPS (~$5–25/mo) or AWS (~$35–150/mo)
+- **Kubernetes learning curve:** Only applies if choosing AWS option; VPS uses familiar Docker Compose
 - **Session persistence across pods:** pyicloud sessions must be shared (solved via Redis)
 
 ### Removed Risks (vs MVP Plan)
@@ -933,9 +1045,20 @@ These risks are new in the cloud deployment:
 - [ ] Add Celery worker service to docker-compose
 - [ ] Test full pipeline: iCloud → Celery → S3 → browser download
 
-### Phase 3: Kubernetes + AWS Deployment (Weeks 6–7)
+### Phase 3: Deploy to Server (Weeks 6–7)
 
-**Goal:** Deploy to AWS EKS (or k3s on EC2). App accessible via public URL.
+**Goal:** App accessible via a public URL. Choose one of the two options below.
+
+#### Option A: VPS Deployment
+
+- [ ] Provision a VPS (Hetzner, DigitalOcean, or school-provided VM)
+- [ ] Set up Nginx reverse proxy with Let's Encrypt SSL
+- [ ] Adapt `docker-compose.yaml` for production (environment variables, restart policies, volumes)
+- [ ] Set up file cleanup cron job (delete downloads older than 24 hours)
+- [ ] Set up CI/CD pipeline (GitHub Actions → SSH → `docker compose up -d`)
+- [ ] Verify app works end-to-end on the public URL
+
+#### Option B: AWS / Kubernetes Deployment
 
 - [ ] Push Docker images to ECR
 - [ ] Write Kubernetes manifests (Deployments, Services, Ingress, ConfigMaps, Secrets)
@@ -963,4 +1086,4 @@ These risks are new in the cloud deployment:
 
 ---
 
-*This cloud plan builds on top of the MVP architecture (PLANNING_MVP.md) and adds Docker, Kubernetes, and AWS infrastructure. The core app logic (FastAPI + pyicloud + React) remains the same — only the deployment model changes.*
+*This cloud plan builds on top of the MVP architecture (PLANNING_MVP.md) and adds Docker containerization with two deployment options: a simple VPS with Docker Compose, or AWS with Kubernetes. The core app logic (FastAPI + pyicloud + React) remains the same — only the deployment model changes.*
