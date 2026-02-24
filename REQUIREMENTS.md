@@ -1,6 +1,6 @@
 # iCloud Photo Downloader — Business Requirements
 
-*For developers — what the app must do from the user's perspective.*
+*What the app must do from the user's perspective.*
 
 ---
 
@@ -12,7 +12,7 @@ iPhone/iPad users **without a Mac** who want to download their iCloud photos org
 
 iCloud's web interface limits downloads to 1,000 images at a time, doesn't preserve album structure, and provides no tracking of what's already been downloaded. Users with large libraries (thousands of photos, many in RAW at 70+ MB each) must manually batch, track, and organize their downloads — a tedious, error-prone process that can take days.
 
-**This app solves that.** The core value is making it easy to download a large number of photos so they end up **separated by album on the user's hard drive**, with full tracking of what has and hasn't been downloaded, and the ability to **resume at any point**.
+**This app solves that.** The core value is making it easy to download a large number of photos with full tracking of what has and hasn't been downloaded, and the ability to **resume at any point**.
 
 ## User Prerequisites
 
@@ -63,36 +63,6 @@ This is the heart of the app. Downloading large libraries takes time (hours or d
 - User can **download individual files** or **download the entire album as a zip**
   - ⚠️ **TBD:** Zip generation may not be feasible for large albums (e.g., thousands of RAW images at 70+ MB each). Needs discussion — may need to cap zip size, split into parts, or remove the zip option entirely.
 - **Files expire after 24 hours** on the server — UI should warn about this
-
-### 5. Settings (Optional / Low Priority)
-
-- Concurrent download limit (default: 3, range: 1–10)
-- Nothing else required for MVP
-
----
-
-## Media Handling Rules
-
-| Type | Behavior |
-|------|----------|
-| JPEG / PNG | Download original |
-| HEIC | Download original — **no conversion** |
-| Live Photos | Download **both** the image (HEIC) and video (MOV) |
-| Videos | Download as-is |
-| Edited photos | Download **original only** (not the edited version) |
-| RAW+JPEG | Download **both** files |
-| Bursts | Download all frames |
-
-**Key principle:** Files are delivered exactly as stored in iCloud. No format conversion, no re-encoding.
-
----
-
-## Filename Rules
-
-- Preserve original iCloud filenames
-- On collision within an album: append EXIF date → `IMG_0001_2024-03-15.HEIC`
-- On further collision: append sequence → `IMG_0001_2024-03-15 (2).HEIC`
-- Cross-album: same photo in multiple albums is stored once, not re-downloaded
 
 ---
 
