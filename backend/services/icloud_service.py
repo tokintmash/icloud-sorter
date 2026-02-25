@@ -120,9 +120,9 @@ def get_albums() -> dict[str, Any] | list[dict[str, Any]]:
         albums_list: list[dict[str, Any]] = []
         seen_folder_names: dict[str, int] = {}
 
-        for album in photos.albums.values():
+        for album in photos.albums:
             name = getattr(album, "title", None) or getattr(album, "name", "")
-            album_id = getattr(album, "obj_type", None) or str(id(album))
+            album_id = getattr(album, "id", None) or str(id(album))
 
             try:
                 asset_count = len(album)
@@ -162,8 +162,8 @@ def get_album_assets(
     try:
         photos = _icloud.photos  # type: ignore[union-attr]
         target_album = None
-        for album in photos.albums.values():
-            aid = getattr(album, "obj_type", None) or str(id(album))
+        for album in photos.albums:
+            aid = getattr(album, "id", None) or str(id(album))
             if aid == album_id:
                 target_album = album
                 break
