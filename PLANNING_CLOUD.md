@@ -6,11 +6,11 @@
 
 ## What Is This?
 
-iCloud Photo Downloader is a web application that lets you download your photos from iCloud by albums without the need of having a Mac. You pick the albums you want, and the app downloads them. No Mac needed.
+iCloud Photo Downloader is a web application that lets you download your photos from iCloud by albums to your PC without the need of having a Mac. You pick the albums you want, and the app downloads them. No Mac needed.
 
 ### Who Is This For?
 
-The app is built for iPhone and iPad users who don't have a Mac. They've been using iCloud to store and organize their photos into albums, but they're running out of iCloud storage. They want to download their photos and videos to their computer — organized by album, exactly as they are, with no reformatting or conversion — so they can then free up space by deleting them from iCloud manually.
+The app is built for iPhone and iPad users who don't have a Mac. They've been using iCloud to store and organize their photos into albums, but they're running out of iCloud storage. They want to download their photos and videos to their PC — organized by album, exactly as they are, with no reformatting or conversion — so they can then free up space by deleting them from iCloud manually.
 
 The app does not delete anything from iCloud. Once an album is fully downloaded, it's marked as "✅ Downloaded" in the UI, and the user can delete it from iCloud at their own pace via icloud.com or their device.
 

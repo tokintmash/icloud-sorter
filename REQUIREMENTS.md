@@ -6,11 +6,11 @@
 
 ## Target User
 
-iPhone/iPad users **without a Mac** who want to download their iCloud photos organized by album to free up iCloud storage. The app does **not** delete anything from iCloud.
+iPhone/iPad users **without a Mac** who want to download their iCloud photos to their PC organized by album to free up iCloud storage. The app does **not** delete anything from iCloud.
 
 ## Core Problem
 
-iCloud's web interface limits downloads to 1,000 images at a time, doesn't preserve album structure, and provides no tracking of what's already been downloaded. Users with large libraries (thousands of photos, many in RAW at 70+ MB each) must manually batch, track, and organize their downloads — a tedious, error-prone process that can take days.
+iCloud's web interface limits downloads to 1,000 images at a time, doesn't preserve album structure, and provides no tracking of what's already been downloaded. Users with large libraries (hundreds of thousands of photos, many in RAW at 70+ MB each) must manually batch, track, and organize their downloads — a tedious, error-prone process that can take days.
 
 **This app solves that.** The core value is making it easy to download a large number of photos with full tracking of what has and hasn't been downloaded, and the ability to **resume at any point**.
 
