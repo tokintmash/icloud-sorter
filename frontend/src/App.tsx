@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
-import { getSession } from './hooks/useApi';
+import { getSession, getSettings } from './hooks/useApi';
 import AuthScreen from './components/AuthScreen';
 import AlbumBrowser from './components/AlbumBrowser';
+import DownloadProgress from './components/DownloadProgress';
 import Settings from './components/Settings';
 
 type AuthState = 'loading' | 'unauthenticated' | 'awaiting_2fa' | 'authenticated';
-type Tab = 'albums' | 'settings';
+type Tab = 'albums' | 'downloads' | 'settings';
 
 export default function App() {
   const [authState, setAuthState] = useState<AuthState>('loading');
   const [appleId, setAppleId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('albums');
+  const [downloadState, setDownloadState] = useState<{ albumIds: string[]; downloadPath: string } | null>(null);
 
   useEffect(() => {
     async function checkSession() {
@@ -41,6 +43,23 @@ export default function App() {
   function handleSessionExpired() {
     setAuthState('unauthenticated');
     setAppleId(null);
+    setDownloadState(null);
+  }
+
+  async function handleStartDownload(albumIds: string[]) {
+    try {
+      const settings = await getSettings();
+      setDownloadState({ albumIds, downloadPath: settings.download_path });
+      setActiveTab('downloads');
+    } catch {
+      setDownloadState({ albumIds, downloadPath: '~/icloud-photos' });
+      setActiveTab('downloads');
+    }
+  }
+
+  function handleDownloadComplete() {
+    setDownloadState(null);
+    setActiveTab('albums');
   }
 
   if (authState === 'loading') {
@@ -84,6 +103,12 @@ export default function App() {
           Albums
         </button>
         <button
+          className={activeTab === 'downloads' ? 'active' : ''}
+          onClick={() => setActiveTab('downloads')}
+        >
+          Downloads
+        </button>
+        <button
           className={activeTab === 'settings' ? 'active' : ''}
           onClick={() => setActiveTab('settings')}
         >
@@ -91,7 +116,26 @@ export default function App() {
         </button>
       </nav>
       <main>
-        {activeTab === 'albums' && <AlbumBrowser onSessionExpired={handleSessionExpired} />}
+        {activeTab === 'albums' && (
+          <AlbumBrowser
+            onSessionExpired={handleSessionExpired}
+            onStartDownload={handleStartDownload}
+          />
+        )}
+        {activeTab === 'downloads' && downloadState && (
+          <DownloadProgress
+            albumIds={downloadState.albumIds}
+            downloadPath={downloadState.downloadPath}
+            onComplete={handleDownloadComplete}
+            onSessionExpired={handleSessionExpired}
+          />
+        )}
+        {activeTab === 'downloads' && !downloadState && (
+          <div className="download-progress">
+            <h2>Downloads</h2>
+            <p>Select albums and click &quot;Download Selected&quot; to start a download.</p>
+          </div>
+        )}
         {activeTab === 'settings' && <Settings />}
       </main>
     </div>

@@ -4,6 +4,7 @@ import type { AlbumInfo, AssetInfo } from '../types/api';
 
 interface AlbumBrowserProps {
   onSessionExpired: () => void;
+  onStartDownload: (albumIds: string[]) => void;
 }
 
 function formatSize(bytes: number): string {
@@ -21,11 +22,12 @@ interface ExpandedAlbumState {
   error: string;
 }
 
-export default function AlbumBrowser({ onSessionExpired }: AlbumBrowserProps) {
+export default function AlbumBrowser({ onSessionExpired, onStartDownload }: AlbumBrowserProps) {
   const [albums, setAlbums] = useState<AlbumInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState<Record<string, ExpandedAlbumState>>({});
+  const [selectedAlbums, setSelectedAlbums] = useState<Set<string>>(new Set());
 
   function handleApiError(err: unknown) {
     if (err instanceof ApiError) {
@@ -56,6 +58,26 @@ export default function AlbumBrowser({ onSessionExpired }: AlbumBrowserProps) {
     fetchAlbums();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function toggleSelection(albumId: string) {
+    setSelectedAlbums((prev) => {
+      const next = new Set(prev);
+      if (next.has(albumId)) {
+        next.delete(albumId);
+      } else {
+        next.add(albumId);
+      }
+      return next;
+    });
+  }
+
+  function selectAll() {
+    setSelectedAlbums(new Set(albums.map((a) => a.id)));
+  }
+
+  function deselectAll() {
+    setSelectedAlbums(new Set());
+  }
 
   async function toggleAlbum(albumId: string) {
     if (expanded[albumId]) {
@@ -160,71 +182,96 @@ export default function AlbumBrowser({ onSessionExpired }: AlbumBrowserProps) {
       {albums.length === 0 ? (
         <p>No albums found.</p>
       ) : (
-        <div className="album-list">
-          {albums.map((album) => {
-            const state = expanded[album.id];
-            return (
-              <div key={album.id} className="card album-card">
-                <div
-                  className="album-header"
-                  onClick={() => toggleAlbum(album.id)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') toggleAlbum(album.id);
-                  }}
-                >
-                  <div className="album-info">
-                    <span className="album-name">{album.name}</span>
-                    <span className="album-count">{album.asset_count} items</span>
-                  </div>
-                  <span className={`album-chevron ${state ? 'open' : ''}`}>▶</span>
-                </div>
-                {state && (
-                  <div className="asset-list">
-                    {state.error && <p className="error-message">{state.error}</p>}
-                    {state.assets.length > 0 && (
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Filename</th>
-                            <th>Type</th>
-                            <th>Size</th>
-                            <th>Dimensions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {state.assets.map((asset) => (
-                            <tr key={asset.id}>
-                              <td>{asset.filename}</td>
-                              <td>{asset.item_type}</td>
-                              <td>{formatSize(asset.size_bytes)}</td>
-                              <td>
-                                {asset.width > 0 && asset.height > 0
-                                  ? `${asset.width}×${asset.height}`
-                                  : '—'}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                    {state.loading && (
-                      <div className="loading-container">
-                        <span className="spinner" />
+        <>
+          <div className="album-toolbar">
+            <button className="btn-secondary" onClick={selectAll}>
+              Select All
+            </button>
+            <button className="btn-secondary" onClick={deselectAll}>
+              Deselect All
+            </button>
+            <button
+              disabled={selectedAlbums.size === 0}
+              onClick={() => onStartDownload(Array.from(selectedAlbums))}
+            >
+              Download Selected ({selectedAlbums.size})
+            </button>
+          </div>
+          <div className="album-list">
+            {albums.map((album) => {
+              const state = expanded[album.id];
+              return (
+                <div key={album.id} className="card album-card">
+                  <div
+                    className="album-header"
+                    onClick={() => toggleAlbum(album.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') toggleAlbum(album.id);
+                    }}
+                  >
+                    <div className="album-header-content">
+                      <input
+                        type="checkbox"
+                        className="album-select-checkbox"
+                        checked={selectedAlbums.has(album.id)}
+                        onChange={() => toggleSelection(album.id)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <div className="album-info">
+                        <span className="album-name">{album.name}</span>
+                        <span className="album-count">{album.asset_count} items</span>
                       </div>
-                    )}
-                    {!state.loading && state.offset < state.total && (
-                      <button className="load-more" onClick={() => loadMore(album.id)}>
-                        Load More ({state.total - state.offset} remaining)
-                      </button>
-                    )}
+                    </div>
+                    <span className={`album-chevron ${state ? 'open' : ''}`}>▶</span>
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                  {state && (
+                    <div className="asset-list">
+                      {state.error && <p className="error-message">{state.error}</p>}
+                      {state.assets.length > 0 && (
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Filename</th>
+                              <th>Type</th>
+                              <th>Size</th>
+                              <th>Dimensions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {state.assets.map((asset) => (
+                              <tr key={asset.id}>
+                                <td>{asset.filename}</td>
+                                <td>{asset.item_type}</td>
+                                <td>{formatSize(asset.size_bytes)}</td>
+                                <td>
+                                  {asset.width > 0 && asset.height > 0
+                                    ? `${asset.width}×${asset.height}`
+                                    : '—'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                      {state.loading && (
+                        <div className="loading-container">
+                          <span className="spinner" />
+                        </div>
+                      )}
+                      {!state.loading && state.offset < state.total && (
+                        <button className="load-more" onClick={() => loadMore(album.id)}>
+                          Load More ({state.total - state.offset} remaining)
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );

@@ -211,3 +211,48 @@ def get_album_assets(
     except Exception as e:
         logger.exception("Error fetching album assets")
         return {"error": "internal_error", "message": f"Failed to fetch assets: {e}"}
+
+
+def get_icloud_instance() -> PyiCloudService | None:
+    return _icloud
+
+
+def get_album_by_id(album_id: str) -> Any | None:
+    if not _is_authenticated():
+        return None
+    try:
+        photos = _icloud.photos  # type: ignore[union-attr]
+        for album in photos.albums:
+            aid = getattr(album, "id", None) or str(id(album))
+            if aid == album_id:
+                return album
+        return None
+    except Exception:
+        logger.exception("Error getting album by id")
+        return None
+
+
+def get_asset_from_album(album: Any, asset_id: str) -> Any | None:
+    """Find a specific asset in an album by its ID."""
+    try:
+        for asset in album:
+            aid = getattr(asset, "id", str(id(asset)))
+            if aid == asset_id:
+                return asset
+        return None
+    except Exception:
+        logger.exception("Error finding asset in album")
+        return None
+
+
+def download_asset_data(asset: Any, version: str = "original") -> tuple[bytes, int] | None:
+    """Download asset data, returns (data_bytes, size) or None on failure."""
+    try:
+        response = asset.download(version)
+        if response is None:
+            return None
+        data = response.content
+        return (data, len(data))
+    except Exception:
+        logger.exception("Error downloading asset data")
+        return None

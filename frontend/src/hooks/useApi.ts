@@ -6,6 +6,9 @@ import type {
   AssetListResponse,
   SettingsResponse,
   SettingsUpdateRequest,
+  DownloadStartResponse,
+  PauseResponse,
+  CancelResponse,
   ErrorResponse,
 } from '../types/api';
 
@@ -92,4 +95,27 @@ export async function updateSettings(settings: SettingsUpdateRequest): Promise<S
     method: 'PUT',
     body: JSON.stringify(settings),
   });
+}
+
+// Download
+export async function startDownload(
+  albumIds: string[],
+  downloadPath: string,
+): Promise<DownloadStartResponse> {
+  return apiFetch<DownloadStartResponse>('/api/download/start', {
+    method: 'POST',
+    body: JSON.stringify({ album_ids: albumIds, download_path: downloadPath }),
+  });
+}
+
+export async function pauseDownload(): Promise<PauseResponse> {
+  return apiFetch<PauseResponse>('/api/download/pause', { method: 'POST' });
+}
+
+export async function resumeDownload(): Promise<PauseResponse> {
+  return apiFetch<PauseResponse>('/api/download/resume', { method: 'POST' });
+}
+
+export async function cancelDownload(): Promise<CancelResponse> {
+  return apiFetch<CancelResponse>('/api/download/cancel', { method: 'POST' });
 }
