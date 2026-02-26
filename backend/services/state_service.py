@@ -127,6 +127,21 @@ def create_download_records(album_id: str, assets: list[dict[str, Any]], version
         db.close()
 
 
+def reset_stale_downloads(album_ids: list[str]) -> None:
+    """Reset non-complete records back to 'pending' so they can be retried."""
+    db = get_db()
+    try:
+        placeholders = ",".join("?" for _ in album_ids)
+        db.execute(
+            f"UPDATE downloads SET status = 'pending', attempts = 0 "
+            f"WHERE album_id IN ({placeholders}) AND status != 'complete'",
+            album_ids,
+        )
+        db.commit()
+    finally:
+        db.close()
+
+
 def get_pending_downloads(album_ids: list[str]) -> list[dict[str, Any]]:
     db = get_db()
     try:

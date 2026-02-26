@@ -19,6 +19,7 @@ from backend.config import (
     SETTINGS_PATH,
 )
 from backend.services import icloud_service, state_service
+from backend.services.icloud_service import AuthenticationError
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,9 @@ class DownloadService:
         # Speed tracking
         self._speed_start_time: float = 0.0
         self._speed_bytes_start: int = 0
+
+        # Auth error tracking for SSE session_expired
+        self._session_expired: bool = False
 
         # Settings
         self._concurrent_downloads: int = DEFAULT_CONCURRENT_DOWNLOADS
@@ -100,17 +104,28 @@ class DownloadService:
 
         total_assets = 0
         estimated_bytes = 0
+        page_size = 200
+
+        # Reset records stuck in 'downloading' or 'skipped' from a previous interrupted run
+        state_service.reset_stale_downloads(album_ids)
 
         for album_id in album_ids:
-            assets_result = icloud_service.get_album_assets(album_id, 0, 99999)
-            if "error" in assets_result:
-                return assets_result
+            album_assets: list[dict[str, Any]] = []
+            offset = 0
+            while True:
+                assets_result = icloud_service.get_album_assets(album_id, offset, page_size)
+                if "error" in assets_result:
+                    return assets_result
+                page = assets_result["assets"]
+                album_assets.extend(page)
+                if offset + page_size >= assets_result["total"]:
+                    break
+                offset += page_size
 
-            assets = assets_result["assets"]
-            count = state_service.create_download_records(album_id, assets, "original")
-            total_assets += len(assets)
+            state_service.create_download_records(album_id, album_assets, "original")
+            total_assets += len(album_assets)
 
-            for asset in assets:
+            for asset in album_assets:
                 estimated_bytes += asset.get("size_bytes", 0)
 
         if total_assets == 0:
@@ -137,6 +152,7 @@ class DownloadService:
         self._download_path = download_path
         self._running = True
         self._cancelled = False
+        self._session_expired = False
         self._paused.set()
         self._status = "downloading"
         self._total_assets = total_assets
@@ -172,29 +188,42 @@ class DownloadService:
             self._cleanup_tmp_files()
 
             loop = asyncio.get_event_loop()
+            semaphore = asyncio.Semaphore(self._concurrent_downloads)
 
-            for record in pending:
-                if self._cancelled:
-                    break
-
-                # Wait while paused
-                while not self._paused.is_set():
+            async def _download_task(record: dict[str, Any]) -> None:
+                async with semaphore:
                     if self._cancelled:
-                        break
-                    await asyncio.sleep(0.1)
+                        return
 
-                if self._cancelled:
-                    break
+                    # Wait while paused
+                    while not self._paused.is_set():
+                        if self._cancelled:
+                            return
+                        await asyncio.sleep(0.1)
 
-                await loop.run_in_executor(self._executor, self._download_one, record)
+                    if self._cancelled:
+                        return
 
-                # Periodic disk space check
-                with self._lock:
-                    self._files_since_disk_check += 1
+                    await loop.run_in_executor(self._executor, self._download_one, record)
 
-                if self._files_since_disk_check >= DISK_CHECK_INTERVAL_FILES or \
-                   self._bytes_since_disk_check >= DISK_CHECK_INTERVAL_BYTES:
-                    self._check_disk_space()
+                    # Periodic disk space check
+                    with self._lock:
+                        self._files_since_disk_check += 1
+                        files = self._files_since_disk_check
+                        bytes_ = self._bytes_since_disk_check
+
+                    if files >= DISK_CHECK_INTERVAL_FILES or bytes_ >= DISK_CHECK_INTERVAL_BYTES:
+                        self._check_disk_space()
+
+            tasks = [_download_task(record) for record in pending]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            # Count any unhandled exceptions as failures
+            for result in results:
+                if isinstance(result, Exception):
+                    logger.error("Unhandled error in download task: %s", result)
+                    with self._lock:
+                        self._failed_assets += 1
 
             # Determine final status
             with self._lock:
@@ -371,6 +400,25 @@ class DownloadService:
                     self._bytes_since_disk_check += data_size
                 return
 
+            except AuthenticationError as e:
+                logger.warning("Auth error downloading %s: %s", asset_id, e)
+                state_service.update_download_status(
+                    asset_id, album_id, version, "failed",
+                    error_message="session_expired",
+                )
+                with self._lock:
+                    self._failed_assets += 1
+                    self._session_expired = True
+                    self._status = "error"
+                    self._errors.append({
+                        "asset_id": asset_id,
+                        "filename": filename,
+                        "error": "session_expired",
+                        "attempts": attempt + 1,
+                    })
+                self._cancelled = True
+                return
+
             except Exception as e:
                 last_error = str(e)
                 logger.warning(
@@ -450,7 +498,7 @@ class DownloadService:
             remaining = self._bytes_total - self._bytes_downloaded
             eta = int(remaining / speed) if speed > 0 else 0
 
-            return {
+            progress: dict[str, Any] = {
                 "status": self._status,
                 "total_assets": self._total_assets,
                 "completed_assets": self._completed_assets,
@@ -464,6 +512,12 @@ class DownloadService:
                 "eta_seconds": eta,
                 "errors": list(self._errors),
             }
+
+            if self._session_expired:
+                progress["error"] = "session_expired"
+                progress["message"] = "Re-authentication required"
+
+            return progress
 
     def pause(self) -> None:
         self._paused.clear()

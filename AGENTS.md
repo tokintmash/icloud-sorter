@@ -245,6 +245,25 @@ The orchestrator **must** verify all of the following after subagents complete:
 
 ---
 
+## Code Review Tracker
+
+Active code review issues are tracked in **`docs/CODE_REVIEW.md`**. Agents must check this file before working on related code and mark issues as fixed (`[x]`) when addressed.
+
+---
+
+## Code Review Notes
+
+### pyicloud `AlbumContainer` iteration
+
+`photos.albums` returns an `AlbumContainer` object, **not a Python dict**. It has no `.values()` method. Iterating it directly (`for album in photos.albums:`) yields album objects — `AlbumContainer.__iter__` calls `iter(self._albums.values())` internally.
+
+- ✅ Correct: `for album in photos.albums:`
+- ❌ Wrong: `for album in photos.albums.values():` — raises `AttributeError: 'AlbumContainer' object has no attribute 'values'`
+
+This was verified against the installed pyicloud source (`pyicloud/services/photos.py`). Any review suggesting `.values()` is based on the incorrect assumption that `AlbumContainer` is a plain dict.
+
+---
+
 ## Shared Conventions
 
 - **No placeholders or TODO stubs** — every file should contain working code or complete content

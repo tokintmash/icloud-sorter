@@ -13,6 +13,11 @@ from backend.services import state_service
 
 logger = logging.getLogger(__name__)
 
+
+class AuthenticationError(Exception):
+    """Raised when an authentication error (401/403) occurs during an iCloud API call."""
+    pass
+
 _INVALID_CHARS_RE = re.compile(r'[/\\:*?"<>|]')
 
 _icloud: PyiCloudService | None = None
@@ -246,13 +251,23 @@ def get_asset_from_album(album: Any, asset_id: str) -> Any | None:
 
 
 def download_asset_data(asset: Any, version: str = "original") -> tuple[bytes, int] | None:
-    """Download asset data, returns (data_bytes, size) or None on failure."""
+    """Download asset data, returns (data_bytes, size) or None on failure.
+
+    Raises:
+        AuthenticationError: If the iCloud session has expired (401/403).
+    """
     try:
-        response = asset.download(version)
-        if response is None:
+        data = asset.download(version)
+        if data is None:
             return None
-        data = response.content
         return (data, len(data))
+    except PyiCloudFailedLoginException as e:
+        raise AuthenticationError(str(e)) from e
+    except PyiCloudAPIResponseException as e:
+        if getattr(e, "code", None) in (401, 403):
+            raise AuthenticationError(f"Authentication expired: {e}") from e
+        logger.exception("iCloud API error downloading asset data")
+        return None
     except Exception:
         logger.exception("Error downloading asset data")
         return None
