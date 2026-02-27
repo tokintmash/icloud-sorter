@@ -261,6 +261,21 @@ Active code review issues are tracked in **`docs/CODE_REVIEW.md`**. Agents must 
 - ❌ Wrong: `for album in photos.albums.values():` — raises `AttributeError: 'AlbumContainer' object has no attribute 'values'`
 
 This was verified against the installed pyicloud source (`pyicloud/services/photos.py`). Any review suggesting `.values()` is based on the incorrect assumption that `AlbumContainer` is a plain dict.
+If I 
+### pyicloud `PhotoAsset.download()` returns raw bytes
+
+`asset.download(version)` returns `bytes` (via `response.raw.read()`), **not** a `Response` object. Do NOT call `.content` on the result.
+
+- ✅ Correct: `data = asset.download("original")` → `data` is `bytes | None`
+- ❌ Wrong: `response = asset.download("original"); data = response.content` → `AttributeError`
+
+If the requested version is not in `asset.versions`, `download()` returns `None`.
+
+### Download records get stuck on interrupted runs
+
+The `downloads` table uses `INSERT OR IGNORE` (keyed on `asset_id, album_id, version`). Records from a previous interrupted/cancelled run can get stuck in `'downloading'`, `'skipped'`, or `'failed'` (with exhausted retries) status. On re-run, `INSERT OR IGNORE` silently skips them and `get_pending_downloads` won't return them, causing an empty download that reports success with 0 files.
+
+**Mitigation:** Always call `reset_stale_downloads(album_ids)` before `create_download_records()` to reset all non-`'complete'` records back to `'pending'`.
 
 ---
 
