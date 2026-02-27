@@ -75,7 +75,8 @@ class DownloadError(BaseModel):
 
 
 class DownloadStartRequest(BaseModel):
-    album_ids: list[str]
+    album_ids: list[str] = []
+    asset_selections: dict[str, list[str]] | None = None
     download_path: str
 
 

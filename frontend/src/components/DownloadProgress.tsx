@@ -4,6 +4,7 @@ import type { DownloadProgressEvent } from '../types/api';
 
 interface DownloadProgressProps {
   albumIds: string[];
+  assetSelections?: Record<string, string[]>;
   downloadPath: string;
   onComplete: () => void;
   onSessionExpired: () => void;
@@ -31,6 +32,7 @@ function formatEta(seconds: number): string {
 
 export default function DownloadProgress({
   albumIds,
+  assetSelections,
   downloadPath,
   onComplete,
   onSessionExpired,
@@ -48,7 +50,7 @@ export default function DownloadProgress({
 
     async function init() {
       try {
-        const result = await startDownload(albumIds, downloadPath);
+        const result = await startDownload(albumIds, downloadPath, assetSelections);
         if (cancelled) return;
         setJobInfo(result);
         setStarting(false);

@@ -61,6 +61,7 @@ export interface AssetListResponse {
 // Download types
 export interface DownloadStartRequest {
   album_ids: string[];
+  asset_selections?: Record<string, string[]>;
   download_path: string;
 }
 

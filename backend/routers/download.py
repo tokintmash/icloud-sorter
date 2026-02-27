@@ -12,7 +12,7 @@ router = APIRouter(prefix="/api/download", tags=["download"])
 
 @router.post("/start")
 async def start_download(request: DownloadStartRequest) -> JSONResponse:
-    result = download_service.start(request.album_ids, request.download_path)
+    result = download_service.start(request.album_ids, request.download_path, request.asset_selections)
     if "error" in result:
         status_map = {
             "download_in_progress": 409,

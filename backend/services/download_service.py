@@ -84,7 +84,28 @@ class DownloadService:
                 pass
         return defaults
 
-    def start(self, album_ids: list[str], download_path: str) -> dict[str, Any]:
+    def _fetch_all_album_assets(self, album_id: str) -> list[dict[str, Any]] | dict[str, Any]:
+        """Fetch all assets for an album with pagination. Returns list of assets or error dict."""
+        album_assets: list[dict[str, Any]] = []
+        offset = 0
+        page_size = 200
+        while True:
+            assets_result = icloud_service.get_album_assets(album_id, offset, page_size)
+            if "error" in assets_result:
+                return assets_result
+            page = assets_result["assets"]
+            album_assets.extend(page)
+            if offset + page_size >= assets_result["total"]:
+                break
+            offset += page_size
+        return album_assets
+
+    def start(
+        self,
+        album_ids: list[str],
+        download_path: str,
+        asset_selections: dict[str, list[str]] | None = None,
+    ) -> dict[str, Any]:
         if self._running:
             return {
                 "error": "download_in_progress",
@@ -97,6 +118,12 @@ class DownloadService:
                 "message": "Not authenticated. Please login first.",
             }
 
+        if not album_ids and not asset_selections:
+            return {
+                "error": "not_found",
+                "message": "No albums or assets selected for download",
+            }
+
         settings = self._load_settings()
         self._concurrent_downloads = int(settings.get("concurrent_downloads", DEFAULT_CONCURRENT_DOWNLOADS))
         self._max_retries = int(settings.get("max_retries", DEFAULT_MAX_RETRIES))
@@ -104,29 +131,41 @@ class DownloadService:
 
         total_assets = 0
         estimated_bytes = 0
-        page_size = 200
+
+        # Collect all album IDs involved (for reset_stale_downloads)
+        all_album_ids = list(set(album_ids) | set((asset_selections or {}).keys()))
 
         # Reset records stuck in 'downloading' or 'skipped' from a previous interrupted run
-        state_service.reset_stale_downloads(album_ids)
+        state_service.reset_stale_downloads(all_album_ids)
 
+        # Whole-album downloads
         for album_id in album_ids:
-            album_assets: list[dict[str, Any]] = []
-            offset = 0
-            while True:
-                assets_result = icloud_service.get_album_assets(album_id, offset, page_size)
-                if "error" in assets_result:
-                    return assets_result
-                page = assets_result["assets"]
-                album_assets.extend(page)
-                if offset + page_size >= assets_result["total"]:
-                    break
-                offset += page_size
+            result = self._fetch_all_album_assets(album_id)
+            if isinstance(result, dict) and "error" in result:
+                return result
+            album_assets: list[dict[str, Any]] = result  # type: ignore[assignment]
 
             state_service.create_download_records(album_id, album_assets, "original")
             total_assets += len(album_assets)
-
             for asset in album_assets:
                 estimated_bytes += asset.get("size_bytes", 0)
+
+        # Per-file selections
+        if asset_selections:
+            for album_id, asset_ids in asset_selections.items():
+                if album_id in album_ids:
+                    continue  # Already downloading entire album
+                asset_id_set = set(asset_ids)
+                result = self._fetch_all_album_assets(album_id)
+                if isinstance(result, dict) and "error" in result:
+                    return result
+                all_assets: list[dict[str, Any]] = result  # type: ignore[assignment]
+                filtered = [a for a in all_assets if a["id"] in asset_id_set]
+
+                state_service.create_download_records(album_id, filtered, "original")
+                total_assets += len(filtered)
+                for asset in filtered:
+                    estimated_bytes += asset.get("size_bytes", 0)
 
         if total_assets == 0:
             return {
@@ -148,7 +187,7 @@ class DownloadService:
 
         # Reset state
         self._job_id = str(uuid.uuid4())
-        self._album_ids = album_ids
+        self._album_ids = all_album_ids
         self._download_path = download_path
         self._running = True
         self._cancelled = False

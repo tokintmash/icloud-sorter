@@ -101,10 +101,15 @@ export async function updateSettings(settings: SettingsUpdateRequest): Promise<S
 export async function startDownload(
   albumIds: string[],
   downloadPath: string,
+  assetSelections?: Record<string, string[]>,
 ): Promise<DownloadStartResponse> {
   return apiFetch<DownloadStartResponse>('/api/download/start', {
     method: 'POST',
-    body: JSON.stringify({ album_ids: albumIds, download_path: downloadPath }),
+    body: JSON.stringify({
+      album_ids: albumIds,
+      download_path: downloadPath,
+      ...(assetSelections && { asset_selections: assetSelections }),
+    }),
   });
 }
 

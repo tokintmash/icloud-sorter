@@ -4,7 +4,7 @@ import type { AlbumInfo, AssetInfo } from '../types/api';
 
 interface AlbumBrowserProps {
   onSessionExpired: () => void;
-  onStartDownload: (albumIds: string[]) => void;
+  onStartDownload: (albumIds: string[], assetSelections?: Record<string, string[]>) => void;
 }
 
 function formatSize(bytes: number): string {
@@ -28,6 +28,7 @@ export default function AlbumBrowser({ onSessionExpired, onStartDownload }: Albu
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState<Record<string, ExpandedAlbumState>>({});
   const [selectedAlbums, setSelectedAlbums] = useState<Set<string>>(new Set());
+  const [selectedAssets, setSelectedAssets] = useState<Map<string, Set<string>>>(new Map());
 
   function handleApiError(err: unknown) {
     if (err instanceof ApiError) {
@@ -69,15 +70,89 @@ export default function AlbumBrowser({ onSessionExpired, onStartDownload }: Albu
       }
       return next;
     });
+    // Clear per-file selections when toggling album checkbox
+    setSelectedAssets((prev) => {
+      const next = new Map(prev);
+      next.delete(albumId);
+      return next;
+    });
+  }
+
+  function toggleAssetSelection(albumId: string, assetId: string) {
+    setSelectedAssets((prev) => {
+      const next = new Map(prev);
+      const albumSet = new Set(next.get(albumId) ?? []);
+      if (albumSet.has(assetId)) {
+        albumSet.delete(assetId);
+      } else {
+        albumSet.add(assetId);
+      }
+      if (albumSet.size === 0) {
+        next.delete(albumId);
+      } else {
+        next.set(albumId, albumSet);
+      }
+      return next;
+    });
+  }
+
+  function selectAllAssets(albumId: string) {
+    const state = expanded[albumId];
+    if (!state) return;
+    setSelectedAssets((prev) => {
+      const next = new Map(prev);
+      next.set(albumId, new Set(state.assets.map((a) => a.id)));
+      return next;
+    });
+  }
+
+  function deselectAllAssets(albumId: string) {
+    setSelectedAssets((prev) => {
+      const next = new Map(prev);
+      next.delete(albumId);
+      return next;
+    });
   }
 
   function selectAll() {
     setSelectedAlbums(new Set(albums.map((a) => a.id)));
+    setSelectedAssets(new Map());
   }
 
   function deselectAll() {
     setSelectedAlbums(new Set());
+    setSelectedAssets(new Map());
   }
+
+  function getSelectionCount(): number {
+    let count = 0;
+    for (const album of albums) {
+      if (selectedAlbums.has(album.id)) {
+        count += album.asset_count;
+      } else {
+        const assetSet = selectedAssets.get(album.id);
+        if (assetSet) {
+          count += assetSet.size;
+        }
+      }
+    }
+    return count;
+  }
+
+  function handleDownloadClick() {
+    const albumIds = Array.from(selectedAlbums);
+    const assetSels: Record<string, string[]> = {};
+    for (const [albumId, assetSet] of selectedAssets) {
+      if (!selectedAlbums.has(albumId) && assetSet.size > 0) {
+        assetSels[albumId] = Array.from(assetSet);
+      }
+    }
+    const hasAssetSelections = Object.keys(assetSels).length > 0;
+    onStartDownload(albumIds, hasAssetSelections ? assetSels : undefined);
+  }
+
+  const selectionCount = getSelectionCount();
+  const hasSelection = selectedAlbums.size > 0 || selectedAssets.size > 0;
 
   async function toggleAlbum(albumId: string) {
     if (expanded[albumId]) {
@@ -185,16 +260,16 @@ export default function AlbumBrowser({ onSessionExpired, onStartDownload }: Albu
         <>
           <div className="album-toolbar">
             <button className="btn-secondary" onClick={selectAll}>
-              Select All
+              Select All Albums
             </button>
             <button className="btn-secondary" onClick={deselectAll}>
               Deselect All
             </button>
             <button
-              disabled={selectedAlbums.size === 0}
-              onClick={() => onStartDownload(Array.from(selectedAlbums))}
+              disabled={!hasSelection}
+              onClick={handleDownloadClick}
             >
-              Download Selected ({selectedAlbums.size})
+              Download Selected ({selectionCount} {selectionCount === 1 ? 'file' : 'files'})
             </button>
           </div>
           <div className="album-list">
@@ -229,10 +304,26 @@ export default function AlbumBrowser({ onSessionExpired, onStartDownload }: Albu
                   {state && (
                     <div className="asset-list">
                       {state.error && <p className="error-message">{state.error}</p>}
+                      {state.assets.length > 0 && !selectedAlbums.has(album.id) && (
+                        <div className="asset-toolbar">
+                          <button className="btn-secondary btn-small" onClick={() => selectAllAssets(album.id)}>
+                            Select All
+                          </button>
+                          <button className="btn-secondary btn-small" onClick={() => deselectAllAssets(album.id)}>
+                            Deselect All
+                          </button>
+                          {(selectedAssets.get(album.id)?.size ?? 0) > 0 && (
+                            <span className="asset-selection-count">
+                              {selectedAssets.get(album.id)!.size} selected
+                            </span>
+                          )}
+                        </div>
+                      )}
                       {state.assets.length > 0 && (
                         <table>
                           <thead>
                             <tr>
+                              {!selectedAlbums.has(album.id) && <th className="checkbox-col"></th>}
                               <th>Filename</th>
                               <th>Type</th>
                               <th>Size</th>
@@ -242,6 +333,15 @@ export default function AlbumBrowser({ onSessionExpired, onStartDownload }: Albu
                           <tbody>
                             {state.assets.map((asset) => (
                               <tr key={asset.id}>
+                                {!selectedAlbums.has(album.id) && (
+                                  <td className="checkbox-col">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedAssets.get(album.id)?.has(asset.id) ?? false}
+                                      onChange={() => toggleAssetSelection(album.id, asset.id)}
+                                    />
+                                  </td>
+                                )}
                                 <td>{asset.filename}</td>
                                 <td>{asset.item_type}</td>
                                 <td>{formatSize(asset.size_bytes)}</td>

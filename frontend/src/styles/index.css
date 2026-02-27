@@ -344,6 +344,30 @@ button:disabled {
   border-bottom: none;
 }
 
+.asset-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.asset-toolbar .btn-small {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.asset-selection-count {
+  font-size: 13px;
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.checkbox-col {
+  width: 32px;
+  text-align: center;
+}
+
 .load-more {
   margin-top: 12px;
   width: 100%;

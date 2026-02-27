@@ -12,7 +12,11 @@ export default function App() {
   const [authState, setAuthState] = useState<AuthState>('loading');
   const [appleId, setAppleId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('albums');
-  const [downloadState, setDownloadState] = useState<{ albumIds: string[]; downloadPath: string } | null>(null);
+  const [downloadState, setDownloadState] = useState<{
+    albumIds: string[];
+    assetSelections?: Record<string, string[]>;
+    downloadPath: string;
+  } | null>(null);
 
   useEffect(() => {
     async function checkSession() {
@@ -46,13 +50,13 @@ export default function App() {
     setDownloadState(null);
   }
 
-  async function handleStartDownload(albumIds: string[]) {
+  async function handleStartDownload(albumIds: string[], assetSelections?: Record<string, string[]>) {
     try {
       const settings = await getSettings();
-      setDownloadState({ albumIds, downloadPath: settings.download_path });
+      setDownloadState({ albumIds, assetSelections, downloadPath: settings.download_path });
       setActiveTab('downloads');
     } catch {
-      setDownloadState({ albumIds, downloadPath: '~/icloud-photos' });
+      setDownloadState({ albumIds, assetSelections, downloadPath: '~/icloud-photos' });
       setActiveTab('downloads');
     }
   }
@@ -125,6 +129,7 @@ export default function App() {
         {activeTab === 'downloads' && downloadState && (
           <DownloadProgress
             albumIds={downloadState.albumIds}
+            assetSelections={downloadState.assetSelections}
             downloadPath={downloadState.downloadPath}
             onComplete={handleDownloadComplete}
             onSessionExpired={handleSessionExpired}
