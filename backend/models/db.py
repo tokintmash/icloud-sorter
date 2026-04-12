@@ -32,7 +32,11 @@ def init_db() -> None:
 
 
 def get_db() -> sqlite3.Connection:
+    needs_init = not STATE_DB_PATH.exists()
     conn = sqlite3.connect(str(STATE_DB_PATH))
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    if needs_init:
+        conn.executescript(SCHEMA)
+        conn.commit()
     return conn

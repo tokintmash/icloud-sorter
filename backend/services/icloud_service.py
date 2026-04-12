@@ -1,3 +1,4 @@
+import base64
 import re
 import logging
 from typing import Any
@@ -15,6 +16,30 @@ logger = logging.getLogger(__name__)
 
 
 _INVALID_CHARS_RE = re.compile(r'[/\\:*?"<>|]')
+
+
+def _get_asset_filename(asset: Any) -> str | None:
+    """Extract filename from a pyicloud PhotoAsset, handling base64 and plain-text filenameEnc."""
+    try:
+        return asset.filename
+    except Exception:
+        pass
+    # Fallback: read filenameEnc directly
+    try:
+        record = asset._master_record
+        raw = record["fields"]["filenameEnc"]["value"]
+        # Try base64 decode first (some assets are actually encoded)
+        try:
+            padded = raw + "=" * (-len(raw) % 4)
+            return base64.b64decode(padded).decode("utf-8")
+        except Exception:
+            pass
+        # filenameEnc is already a plain-text filename
+        if isinstance(raw, str) and raw:
+            return raw
+    except Exception:
+        pass
+    return None
 
 _icloud: PyiCloudService | None = None
 _apple_id: str | None = None
@@ -185,13 +210,13 @@ def sync_album_metadata(folder_map: dict[str, str]) -> dict[str, Any] | int:
             folder_name = folder_map.get(album_id, _sanitize_folder_name(name))
 
             for asset in album:
-                filename = getattr(asset, "filename", None)
-                if not filename:
+                fn = _get_asset_filename(asset)
+                if not fn:
                     continue
                 rows.append({
                     "album_id": album_id,
                     "album_name": name,
-                    "filename": filename,
+                    "filename": fn,
                     "folder_name": folder_name,
                 })
 
