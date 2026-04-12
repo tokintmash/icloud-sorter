@@ -19,7 +19,6 @@ async def start_sort(request: SortStartRequest) -> SortStartResponse | JSONRespo
         status_map = {
             "sort_in_progress": 409,
             "not_authenticated": 401,
-            "not_found": 404,
             "file_not_found": 400,
             "permission_denied": 403,
         }
@@ -29,8 +28,14 @@ async def start_sort(request: SortStartRequest) -> SortStartResponse | JSONRespo
     return SortStartResponse(**result)
 
 
-@router.get("/progress")
-async def sort_progress() -> StreamingResponse:
+@router.get("/progress", response_model=None)
+async def sort_progress() -> StreamingResponse | JSONResponse:
+    if not sorter_service.is_running() and sorter_service.get_progress()["status"] == "idle":
+        return JSONResponse(
+            status_code=409,
+            content={"error": "sort_in_progress", "message": "No sort operation is active"},
+        )
+
     async def event_stream():
         while True:
             progress = sorter_service.get_progress()
@@ -42,4 +47,8 @@ async def sort_progress() -> StreamingResponse:
 
             await asyncio.sleep(0.5)
 
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache"},
+    )

@@ -171,7 +171,7 @@ def get_albums() -> dict[str, Any] | list[dict[str, Any]]:
         return {"error": "internal_error", "message": f"Failed to fetch albums: {e}"}
 
 
-def sync_album_metadata() -> dict[str, Any] | int:
+def sync_album_metadata(folder_map: dict[str, str]) -> dict[str, Any] | int:
     if not _is_authenticated():
         return {"error": "not_authenticated", "message": "Not authenticated. Please login first."}
 
@@ -182,6 +182,7 @@ def sync_album_metadata() -> dict[str, Any] | int:
         for album in photos.albums:
             name = getattr(album, "title", None) or getattr(album, "name", "")
             album_id = getattr(album, "id", None) or str(id(album))
+            folder_name = folder_map.get(album_id, _sanitize_folder_name(name))
 
             for asset in album:
                 filename = getattr(asset, "filename", None)
@@ -191,6 +192,7 @@ def sync_album_metadata() -> dict[str, Any] | int:
                     "album_id": album_id,
                     "album_name": name,
                     "filename": filename,
+                    "folder_name": folder_name,
                 })
 
         state_service.replace_album_files(rows)

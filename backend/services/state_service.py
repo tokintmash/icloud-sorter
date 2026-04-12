@@ -30,8 +30,8 @@ def replace_album_files(rows: list[dict[str, str]]) -> None:
     try:
         db.execute("DELETE FROM album_files")
         db.executemany(
-            "INSERT INTO album_files (album_id, album_name, filename, status, error) VALUES (?, ?, ?, 'pending', NULL)",
-            [(r["album_id"], r["album_name"], r["filename"]) for r in rows],
+            "INSERT OR IGNORE INTO album_files (album_id, album_name, filename, folder_name, status, error) VALUES (?, ?, ?, ?, 'pending', NULL)",
+            [(r["album_id"], r["album_name"], r["filename"], r.get("folder_name", "")) for r in rows],
         )
         db.commit()
     finally:
@@ -78,7 +78,7 @@ def get_pending_album_files(album_ids: list[str]) -> list[dict[str, str]]:
         placeholders = ",".join("?" for _ in album_ids)
         rows = db.execute(
             f"""
-            SELECT album_id, album_name, filename
+            SELECT album_id, album_name, filename, folder_name
             FROM album_files
             WHERE album_id IN ({placeholders}) AND status = 'pending'
             ORDER BY LOWER(album_name), LOWER(filename)

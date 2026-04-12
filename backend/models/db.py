@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS album_files (
     album_id    TEXT NOT NULL,
     album_name  TEXT NOT NULL,
     filename    TEXT NOT NULL,
+    folder_name TEXT NOT NULL DEFAULT '',
     status      TEXT NOT NULL DEFAULT 'pending',
     error       TEXT,
     PRIMARY KEY (album_id, filename)

@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 from backend.services import state_service, icloud_service
-from backend.routers.settings import _load_settings
+from backend.config import load_settings
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class SorterService:
         if not icloud_service._is_authenticated():
             return {"error": "not_authenticated", "message": "Not authenticated. Please login first."}
 
-        settings = _load_settings()
+        settings = load_settings()
         icloud_folder = settings.get("icloud_folder", "")
 
         if not icloud_folder or not Path(icloud_folder).is_dir():
@@ -37,7 +37,7 @@ class SorterService:
         rows = state_service.get_pending_album_files(album_ids)
 
         if not rows:
-            return {"error": "not_found", "message": "No files to sort for the selected albums. Fetch albums first."}
+            return {"error": "file_not_found", "message": "No files to sort for the selected albums. Fetch albums first."}
 
         self._running = True
         self._status = "sorting"
@@ -53,12 +53,11 @@ class SorterService:
 
     def _run_sort(self, rows: list[dict[str, str]], icloud_folder: str) -> None:
         try:
-            # Build folder name mapping from album info in rows
-            album_info: dict[str, dict[str, str]] = {}
+            # Use persisted folder names from album_files table
+            folder_map: dict[str, str] = {}
             for row in rows:
-                if row["album_id"] not in album_info:
-                    album_info[row["album_id"]] = {"id": row["album_id"], "name": row["album_name"]}
-            folder_map = icloud_service._compute_folder_names(list(album_info.values()))
+                if row["album_id"] not in folder_map and row.get("folder_name"):
+                    folder_map[row["album_id"]] = row["folder_name"]
 
             # Build file index: filename.casefold() -> list[Path]
             root = Path(icloud_folder)
