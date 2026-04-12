@@ -4,7 +4,7 @@
 
 This app reads iCloud album metadata via `pyicloud`, matches it to files already synced locally by iCloud for Windows, and moves them into album-named folders. **No downloading** — files are reorganized in place.
 
-**Source of truth:** `PLANNING_SORTER_v2.md`
+**Source of truth:** `.planning/PLANNING_SORTER_v2.md`
 
 ---
 
@@ -197,7 +197,7 @@ Not needed for the sorter (we don't download files), but noted for reference: `a
 ## Conventions
 
 - **No placeholders or TODO stubs** — every file must contain working code
-- **`PLANNING_SORTER_v2.md`** is the source of truth
+- **`.planning/PLANNING_SORTER_v2.md`** is the source of truth
 - **Python:** 3.10+, type hints, f-strings, `asyncio`
 - **TypeScript:** strict mode, no `any` types
 - **No licensing in MVP** — deferred to post-MVP
