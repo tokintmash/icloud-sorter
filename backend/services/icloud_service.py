@@ -14,10 +14,6 @@ from backend.services import state_service
 logger = logging.getLogger(__name__)
 
 
-class AuthenticationError(Exception):
-    """Raised when an authentication error (401/403) occurs during an iCloud API call."""
-    pass
-
 _INVALID_CHARS_RE = re.compile(r'[/\\:*?"<>|]')
 
 _icloud: PyiCloudService | None = None
@@ -32,6 +28,22 @@ def _sanitize_folder_name(name: str) -> str:
     if not sanitized:
         sanitized = "Unnamed Album"
     return sanitized
+
+
+def _compute_folder_names(albums: list[dict[str, str]]) -> dict[str, str]:
+    """Given a list of {"id": ..., "name": ...} dicts, return {album_id: folder_name} with dedup."""
+    sorted_albums = sorted(albums, key=lambda a: (a["name"].casefold(), a["id"]))
+    seen: dict[str, int] = {}
+    result: dict[str, str] = {}
+    for album in sorted_albums:
+        folder_name = _sanitize_folder_name(album["name"])
+        if folder_name in seen:
+            seen[folder_name] += 1
+            folder_name = f"{folder_name} ({seen[folder_name]})"
+        else:
+            seen[folder_name] = 1
+        result[album["id"]] = folder_name
+    return result
 
 
 def login(apple_id: str, password: str) -> dict[str, Any]:
@@ -122,8 +134,7 @@ def get_albums() -> dict[str, Any] | list[dict[str, Any]]:
 
     try:
         photos = _icloud.photos  # type: ignore[union-attr]
-        albums_list: list[dict[str, Any]] = []
-        seen_folder_names: dict[str, int] = {}
+        albums_raw: list[dict[str, Any]] = []
 
         for album in photos.albums:
             name = getattr(album, "title", None) or getattr(album, "name", "")
@@ -134,21 +145,23 @@ def get_albums() -> dict[str, Any] | list[dict[str, Any]]:
             except Exception:
                 asset_count = 0
 
-            folder_name = _sanitize_folder_name(name)
-            if folder_name in seen_folder_names:
-                seen_folder_names[folder_name] += 1
-                folder_name = f"{folder_name} ({seen_folder_names[folder_name]})"
-            else:
-                seen_folder_names[folder_name] = 1
-
-            albums_list.append({
+            albums_raw.append({
                 "id": album_id,
                 "name": name,
                 "asset_count": asset_count,
-                "folder_name": folder_name,
             })
 
-        state_service.save_albums(albums_list)
+        folder_map = _compute_folder_names(albums_raw)
+
+        albums_list = []
+        for a in albums_raw:
+            albums_list.append({
+                "id": a["id"],
+                "name": a["name"],
+                "asset_count": a["asset_count"],
+                "folder_name": folder_map[a["id"]],
+            })
+
         return albums_list
     except PyiCloudAPIResponseException as e:
         logger.exception("iCloud API error fetching albums")
@@ -158,116 +171,33 @@ def get_albums() -> dict[str, Any] | list[dict[str, Any]]:
         return {"error": "internal_error", "message": f"Failed to fetch albums: {e}"}
 
 
-def get_album_assets(
-    album_id: str, offset: int = 0, limit: int = 200
-) -> dict[str, Any]:
+def sync_album_metadata() -> dict[str, Any] | int:
     if not _is_authenticated():
         return {"error": "not_authenticated", "message": "Not authenticated. Please login first."}
 
     try:
         photos = _icloud.photos  # type: ignore[union-attr]
-        target_album = None
+        rows: list[dict[str, str]] = []
+
         for album in photos.albums:
-            aid = getattr(album, "id", None) or str(id(album))
-            if aid == album_id:
-                target_album = album
-                break
+            name = getattr(album, "title", None) or getattr(album, "name", "")
+            album_id = getattr(album, "id", None) or str(id(album))
 
-        if target_album is None:
-            return {"error": "not_found", "message": f"Album '{album_id}' not found"}
+            for asset in album:
+                filename = getattr(asset, "filename", None)
+                if not filename:
+                    continue
+                rows.append({
+                    "album_id": album_id,
+                    "album_name": name,
+                    "filename": filename,
+                })
 
-        all_assets = list(target_album)
-        total = len(all_assets)
-        sliced = all_assets[offset : offset + limit]
-
-        assets_list: list[dict[str, Any]] = []
-        for asset in sliced:
-            asset_id = getattr(asset, "id", str(id(asset)))
-            filename = getattr(asset, "filename", "unknown")
-            size_bytes = getattr(asset, "size", 0) or 0
-            item_type = getattr(asset, "item_type", "image")
-            created = getattr(asset, "created", None)
-            created_at = created.isoformat() if created else ""
-            dimensions = getattr(asset, "dimensions", (0, 0)) or (0, 0)
-            width = dimensions[0] if len(dimensions) > 0 else 0
-            height = dimensions[1] if len(dimensions) > 1 else 0
-
-            assets_list.append({
-                "id": asset_id,
-                "filename": filename,
-                "size_bytes": size_bytes,
-                "item_type": item_type,
-                "created_at": created_at,
-                "width": width,
-                "height": height,
-            })
-
-        state_service.save_assets(album_id, assets_list)
-
-        return {
-            "assets": assets_list,
-            "total": total,
-            "offset": offset,
-            "limit": limit,
-        }
+        state_service.replace_album_files(rows)
+        return len(rows)
     except PyiCloudAPIResponseException as e:
-        logger.exception("iCloud API error fetching assets")
+        logger.exception("iCloud API error syncing metadata")
         return {"error": "internal_error", "message": f"iCloud API error: {e}"}
     except Exception as e:
-        logger.exception("Error fetching album assets")
-        return {"error": "internal_error", "message": f"Failed to fetch assets: {e}"}
-
-
-def get_icloud_instance() -> PyiCloudService | None:
-    return _icloud
-
-
-def get_album_by_id(album_id: str) -> Any | None:
-    if not _is_authenticated():
-        return None
-    try:
-        photos = _icloud.photos  # type: ignore[union-attr]
-        for album in photos.albums:
-            aid = getattr(album, "id", None) or str(id(album))
-            if aid == album_id:
-                return album
-        return None
-    except Exception:
-        logger.exception("Error getting album by id")
-        return None
-
-
-def get_asset_from_album(album: Any, asset_id: str) -> Any | None:
-    """Find a specific asset in an album by its ID."""
-    try:
-        for asset in album:
-            aid = getattr(asset, "id", str(id(asset)))
-            if aid == asset_id:
-                return asset
-        return None
-    except Exception:
-        logger.exception("Error finding asset in album")
-        return None
-
-
-def download_asset_data(asset: Any, version: str = "original") -> tuple[bytes, int] | None:
-    """Download asset data, returns (data_bytes, size) or None on failure.
-
-    Raises:
-        AuthenticationError: If the iCloud session has expired (401/403).
-    """
-    try:
-        data = asset.download(version)
-        if data is None:
-            return None
-        return (data, len(data))
-    except PyiCloudFailedLoginException as e:
-        raise AuthenticationError(str(e)) from e
-    except PyiCloudAPIResponseException as e:
-        if getattr(e, "code", None) in (401, 403):
-            raise AuthenticationError(f"Authentication expired: {e}") from e
-        logger.exception("iCloud API error downloading asset data")
-        return None
-    except Exception:
-        logger.exception("Error downloading asset data")
-        return None
+        logger.exception("Error syncing album metadata")
+        return {"error": "internal_error", "message": f"Failed to sync metadata: {e}"}

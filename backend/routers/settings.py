@@ -4,28 +4,30 @@ from pathlib import Path
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from backend.config import (
-    SETTINGS_PATH,
-    DEFAULT_DOWNLOAD_PATH,
-    DEFAULT_CONCURRENT_DOWNLOADS,
-    DEFAULT_METADATA_DELAY_MS,
-    DEFAULT_MAX_RETRIES,
-)
+from backend.config import SETTINGS_PATH, DEFAULT_ICLOUD_FOLDER
 from backend.models.schemas import SettingsResponse, SettingsUpdateRequest
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
-
-def _get_defaults() -> dict[str, str | int]:
-    return {
-        "download_path": DEFAULT_DOWNLOAD_PATH,
-        "concurrent_downloads": DEFAULT_CONCURRENT_DOWNLOADS,
-        "metadata_delay_ms": DEFAULT_METADATA_DELAY_MS,
-        "max_retries": DEFAULT_MAX_RETRIES,
-    }
+_AUTO_DETECT_PATHS = [
+    Path.home() / "Pictures" / "iCloud Photos" / "Photos",
+    Path.home() / "iCloudPhotos",
+    Path.home() / "Pictures" / "iCloud Photos",
+]
 
 
-def _load_settings() -> dict[str, str | int]:
+def _detect_icloud_folder() -> str:
+    for p in _AUTO_DETECT_PATHS:
+        if p.exists():
+            return str(p)
+    return DEFAULT_ICLOUD_FOLDER
+
+
+def _get_defaults() -> dict[str, str]:
+    return {"icloud_folder": _detect_icloud_folder()}
+
+
+def _load_settings() -> dict[str, str]:
     defaults = _get_defaults()
     if SETTINGS_PATH.exists():
         try:
@@ -37,7 +39,7 @@ def _load_settings() -> dict[str, str | int]:
     return defaults
 
 
-def _save_settings(settings: dict[str, str | int]) -> None:
+def _save_settings(settings: dict[str, str]) -> None:
     SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(SETTINGS_PATH, "w") as f:
         json.dump(settings, f, indent=2)

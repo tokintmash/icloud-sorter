@@ -1,11 +1,8 @@
 from pathlib import Path
 
+APP_STATE_DIR: Path = Path.home() / ".icloud-sorter"
+STATE_DB_PATH: Path = APP_STATE_DIR / "state.db"
+COOKIE_DIR: Path = APP_STATE_DIR / "cookies"
+SETTINGS_PATH: Path = APP_STATE_DIR / "settings.json"
 
-STATE_DB_PATH: Path = Path.home() / ".icloud-downloader" / "state.db"
-COOKIE_DIR: Path = Path.home() / ".icloud-downloader" / "cookies"
-SETTINGS_PATH: Path = Path.home() / ".icloud-downloader" / "settings.json"
-
-DEFAULT_DOWNLOAD_PATH: str = str(Path.home() / "icloud-photos")
-DEFAULT_CONCURRENT_DOWNLOADS: int = 3
-DEFAULT_METADATA_DELAY_MS: int = 200
-DEFAULT_MAX_RETRIES: int = 3
+DEFAULT_ICLOUD_FOLDER: str = ""

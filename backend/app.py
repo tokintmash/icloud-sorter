@@ -13,9 +13,9 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.models.db import init_db
-from backend.routers import auth, albums, download, settings
+from backend.routers import auth, albums, sort, settings
 
-app = FastAPI(title="iCloud Photo Downloader", version="1.0.0")
+app = FastAPI(title="iCloud Photo Sorter", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,7 +27,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(albums.router)
-app.include_router(download.router)
+app.include_router(sort.router)
 app.include_router(settings.router)
 
 FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
