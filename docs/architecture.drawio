@@ -1,0 +1,122 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36" version="29.6.1">
+  <diagram id="icloud-sorter-arch" name="Architecture">
+    <mxGraphModel grid="1" page="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="user_group" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=13;verticalAlign=top;spacingTop=5;dashed=1;" value="👤 iPhone User (No Mac)" vertex="1">
+          <mxGeometry height="80" width="180" x="40" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="iphone" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" value="📱 iPhone with&#xa;iCloud Photos" vertex="1">
+          <mxGeometry height="40" width="140" x="60" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="cloud_group" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;verticalAlign=top;spacingTop=5;dashed=1;" value="☁️ iCloud" vertex="1">
+          <mxGeometry height="100" width="220" x="320" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="icloud_storage" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" value="iCloud Photo Library&#xa;(Albums &amp; Images)" vertex="1">
+          <mxGeometry height="60" width="130" x="365" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="web_group" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;verticalAlign=top;spacingTop=5;dashed=1;" value="🌐 Website" vertex="1">
+          <mxGeometry height="100" width="260" x="640" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="signup" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" value="Create Account /&#xa;Purchase License" vertex="1">
+          <mxGeometry height="50" width="110" x="655" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="download" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" value="Download&#xa;Desktop App" vertex="1">
+          <mxGeometry height="50" width="110" x="775" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="signup_to_download" edge="1" parent="1" source="signup" style="edgeStyle=orthogonalEdgeStyle;" target="download">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pc_group" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#333333;fontStyle=1;fontSize=14;verticalAlign=top;spacingTop=5;dashed=1;" value="🖥️ Windows PC" vertex="1">
+          <mxGeometry height="500" width="860" x="40" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="prereq_group" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=12;verticalAlign=top;spacingTop=5;dashed=1;" value="Prerequisite: iCloud for Windows" vertex="1">
+          <mxGeometry height="160" width="340" x="60" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="icloud_win" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" value="iCloud for Windows" vertex="1">
+          <mxGeometry height="40" width="140" x="80" y="245" as="geometry" />
+        </mxCell>
+        <mxCell id="flat_folder" parent="1" style="shape=folder;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;tabWidth=80;tabHeight=16;" value="user\Pictures\iCloud Photos\n(all images in one flat folder)" vertex="1">
+          <mxGeometry height="50" width="300" x="80" y="305" as="geometry" />
+        </mxCell>
+        <mxCell id="win_to_flat" edge="1" parent="1" source="icloud_win" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" target="flat_folder" value="Syncs all photos&#xa;(no album structure)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="app_group" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=12;verticalAlign=top;spacingTop=5;dashed=1;" value="📦 Desktop App" vertex="1">
+          <mxGeometry height="160" width="440" x="440" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="pyicloud" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" value="pyicloud&#xa;Fetch album list &amp;&#xa;image metadata" vertex="1">
+          <mxGeometry height="50" width="120" x="460" y="245" as="geometry" />
+        </mxCell>
+        <mxCell id="ui" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" value="Show Albums &amp;&#xa;Images UI" vertex="1">
+          <mxGeometry height="50" width="120" x="610" y="245" as="geometry" />
+        </mxCell>
+        <mxCell id="sorter" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;" value="File Sorter&#xa;Engine" vertex="1">
+          <mxGeometry height="50" width="100" x="760" y="245" as="geometry" />
+        </mxCell>
+        <mxCell id="pyicloud_to_ui" edge="1" parent="1" source="pyicloud" style="edgeStyle=orthogonalEdgeStyle;" target="ui">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ui_to_sorter" edge="1" parent="1" source="ui" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" target="sorter" value="User confirms&#xa;sorting">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="result_group" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;verticalAlign=top;spacingTop=5;dashed=1;" value="📂 Organized Output" vertex="1">
+          <mxGeometry height="130" width="560" x="270" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="album_a" parent="1" style="shape=folder;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;tabWidth=70;tabHeight=14;" value="📁 Vacation 2025/&#xa;  photo1.jpg&#xa;  photo2.jpg" vertex="1">
+          <mxGeometry height="70" width="150" x="290" y="493" as="geometry" />
+        </mxCell>
+        <mxCell id="album_b" parent="1" style="shape=folder;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;tabWidth=70;tabHeight=14;" value="📁 Family/&#xa;  photo3.jpg&#xa;  photo4.jpg" vertex="1">
+          <mxGeometry height="70" width="150" x="470" y="493" as="geometry" />
+        </mxCell>
+        <mxCell id="album_c" parent="1" style="shape=folder;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;tabWidth=70;tabHeight=14;" value="📁 Pets/&#xa;  photo5.jpg" vertex="1">
+          <mxGeometry height="70" width="150" x="650" y="493" as="geometry" />
+        </mxCell>
+        <mxCell id="iphone_to_cloud" edge="1" parent="1" source="iphone" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" target="icloud_storage" value="Uploads photos&#xa;to iCloud">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cloud_to_win" edge="1" parent="1" source="icloud_storage" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" target="icloud_win" value="Syncs down to PC">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="430" y="160" />
+              <mxPoint x="150" y="160" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cloud_to_pyicloud" edge="1" parent="1" source="icloud_storage" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" target="pyicloud" value="Album &amp; image&#xa;metadata via API">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="430" y="170" />
+              <mxPoint x="520" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="download_to_app" edge="1" parent="1" source="download" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" target="app_group" value="Installs on PC">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="830" y="150" />
+              <mxPoint x="660" y="150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sorter_to_result" edge="1" parent="1" source="sorter" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" target="result_group" value="Creates album folders &amp;&#xa;moves local files">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="810" y="430" />
+              <mxPoint x="550" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="flat_to_sorter" edge="1" parent="1" source="flat_folder" style="edgeStyle=orthogonalEdgeStyle;dashed=1;fontSize=9;" target="sorter" value="Source files. Separately downloaded by iCloud Windows&#xa; on local disk">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="230" y="400" />
+              <mxPoint x="810" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
