@@ -167,6 +167,7 @@ class SorterService:
                         key = source.name.casefold()
                         if key in file_index:
                             file_index[key] = [p if p != source else target_path for p in file_index[key]]
+                        claimed.add(target_path)
 
                     state_service.mark_album_file_sorted(album_id, filename)
                     self._completed_files += 1
