@@ -33,6 +33,16 @@ class SorterService:
         if not icloud_folder or not Path(icloud_folder).is_dir():
             return {"error": "file_not_found", "message": "iCloud folder not found. Please configure it in settings."}
 
+        # Fetch album metadata from iCloud (only selected albums)
+        albums_result = icloud_service.get_albums()
+        if isinstance(albums_result, dict) and "error" in albums_result:
+            return albums_result
+
+        folder_map = {a["id"]: a["folder_name"] for a in albums_result}
+        sync_result = icloud_service.sync_album_metadata(folder_map, album_ids)
+        if isinstance(sync_result, dict) and "error" in sync_result:
+            return sync_result
+
         state_service.reset_album_files(album_ids)
         rows = state_service.get_pending_album_files(album_ids)
 

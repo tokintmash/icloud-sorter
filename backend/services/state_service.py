@@ -25,10 +25,14 @@ def get_session() -> dict[str, Any] | None:
         return None
 
 
-def replace_album_files(rows: list[dict[str, str]]) -> None:
+def replace_album_files(rows: list[dict[str, str]], album_ids: list[str] | None = None) -> None:
     db = get_db()
     try:
-        db.execute("DELETE FROM album_files")
+        if album_ids:
+            placeholders = ",".join("?" * len(album_ids))
+            db.execute(f"DELETE FROM album_files WHERE album_id IN ({placeholders})", album_ids)
+        else:
+            db.execute("DELETE FROM album_files")
         db.executemany(
             "INSERT OR IGNORE INTO album_files (album_id, album_name, filename, folder_name, status, error) VALUES (?, ?, ?, ?, 'pending', NULL)",
             [(r["album_id"], r["album_name"], r["filename"], r.get("folder_name", "")) for r in rows],

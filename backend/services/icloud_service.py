@@ -196,17 +196,26 @@ def get_albums() -> dict[str, Any] | list[dict[str, Any]]:
         return {"error": "internal_error", "message": f"Failed to fetch albums: {e}"}
 
 
-def sync_album_metadata(folder_map: dict[str, str]) -> dict[str, Any] | int:
+def sync_album_metadata(folder_map: dict[str, str], album_ids: list[str] | None = None) -> dict[str, Any] | int:
+    """Sync per-asset metadata into the album_files table.
+
+    If *album_ids* is given, only those albums are synced; otherwise all albums.
+    """
     if not _is_authenticated():
         return {"error": "not_authenticated", "message": "Not authenticated. Please login first."}
 
     try:
         photos = _icloud.photos  # type: ignore[union-attr]
         rows: list[dict[str, str]] = []
+        filter_ids = set(album_ids) if album_ids else None
 
         for album in photos.albums:
             name = getattr(album, "title", None) or getattr(album, "name", "")
             album_id = getattr(album, "id", None) or str(id(album))
+
+            if filter_ids and album_id not in filter_ids:
+                continue
+
             folder_name = folder_map.get(album_id, _sanitize_folder_name(name))
 
             for asset in album:
@@ -220,7 +229,7 @@ def sync_album_metadata(folder_map: dict[str, str]) -> dict[str, Any] | int:
                     "folder_name": folder_name,
                 })
 
-        state_service.replace_album_files(rows)
+        state_service.replace_album_files(rows, album_ids)
         return len(rows)
     except PyiCloudAPIResponseException as e:
         logger.exception("iCloud API error syncing metadata")
