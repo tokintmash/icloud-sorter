@@ -100,9 +100,9 @@ SSE best practice is to include `Cache-Control: no-cache` to prevent proxies/bro
 
 **File:** `backend/app.py` (line 39)
 
-FastAPI's `on_event` is deprecated in favor of the `lifespan` context manager.
+FastAPI's `on_event` is deprecated in favor of the `lifespan` context manager. Still works but produces a `DeprecationWarning` during tests.
 
-**Fix:** Low priority — can be addressed in a later cleanup pass.
+**Fix:** Replace with `@asynccontextmanager` lifespan. Low priority — functional but noisy.
 
 ---
 

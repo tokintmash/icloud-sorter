@@ -80,7 +80,24 @@ When the backend is running, visit `http://localhost:8000/docs` for the auto-gen
 
 - **Backend** uses FastAPI with async endpoints
 - **Frontend** communicates via REST API (`/api/*`)
-- **Download progress** uses Server-Sent Events (SSE)
-- **State** is persisted in SQLite at `~/.icloud-downloader/state.db`
+- **Sort progress** uses Server-Sent Events (SSE)
+- **State** is persisted in SQLite at `~/.icloud-sorter/state.db`
 - **iCloud auth** uses `pyicloud` library with cookie-based session persistence
-- See `PLANNING_MVP.md` for detailed architecture documentation
+- See `.planning/PLANNING_SORTER_v2.md` for detailed architecture documentation
+
+## Testing
+
+### Backend (pytest)
+
+```bash
+# Run from project root
+python -m pytest backend/tests/ -v
+```
+
+### Frontend (vitest)
+
+```bash
+cd frontend
+npx vitest run           # Single run
+npx vitest               # Watch mode
+```

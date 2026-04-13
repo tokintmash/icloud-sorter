@@ -1,15 +1,15 @@
-# iCloud Photo Downloader
+# iCloud Photo Sorter
 
-Download your iCloud photos and videos locally, organized by album.
+Organize your iCloud photos locally by album. Reads iCloud album metadata, matches it to files already synced by iCloud for Windows, and moves them into album-named folders — no downloading required.
 
 ## Features
 
 - 🔐 Secure iCloud authentication with 2FA support
-- 📁 Browse and select albums to download
-- 📊 Real-time download progress with speed and ETA
-- ⏸️ Pause, resume, and cancel downloads
-- 🔄 Incremental sync — only downloads new photos
-- 💾 Atomic writes — no corrupted files from interrupted downloads
+- 📁 Browse and select albums to sort
+- 📊 Real-time sort progress via SSE
+- 🗂️ Files moved (not copied) into album-named folders — instant on same drive
+- 🔄 Case-insensitive filename matching (Windows NTFS)
+- ⚡ Collision handling and cross-album duplicate detection
 
 ## Prerequisites
 
@@ -25,19 +25,18 @@ git clone https://github.com/tokintmash/icloud-downloader.git
 cd icloud-downloader
 
 # Set up the backend
-cd backend
-python3 -m venv venv
-source venv/bin/activate        # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
+python -m venv venv
+venv\Scripts\activate           # On macOS/Linux: source venv/bin/activate
+pip install -r backend/requirements.txt
 
 # Build the frontend
-cd ../frontend
+cd frontend
 npm install
 npm run build
 
 # Run the application
-cd ../backend
-python app.py
+cd ..
+python backend/app.py
 ```
 
 Then open `http://localhost:8000` in your browser.
@@ -46,12 +45,23 @@ Then open `http://localhost:8000` in your browser.
 
 See the [Development Guide](docs/DEVELOPMENT.md) for running the project in development mode with hot reloading.
 
+## Testing
+
+```bash
+# Backend tests (run from project root)
+python -m pytest backend/tests/ -v
+
+# Frontend tests
+cd frontend
+npx vitest run
+```
+
 ## How It Works
 
 1. **Login** with your Apple ID (2FA supported)
 2. **Browse** your iCloud photo albums
-3. **Select** albums to download
-4. **Download** — photos are saved to your chosen directory, organized by album
+3. **Select** albums to sort
+4. **Sort** — files already synced by iCloud for Windows are moved into album-named folders
 
 ## Disclaimer
 
@@ -59,4 +69,4 @@ This is an **unofficial project** not affiliated with Apple. See [DISCLAIMER.md]
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+All rights reserved. Licensing to be determined.
