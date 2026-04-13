@@ -23,7 +23,7 @@ def _detect_icloud_folder() -> str:
 
 
 def _get_defaults() -> dict[str, str]:
-    return {"icloud_folder": _detect_icloud_folder()}
+    return {"icloud_folder": _detect_icloud_folder(), "duplicate_handling": "move_only"}
 
 
 def load_settings() -> dict[str, str]:

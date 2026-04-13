@@ -27,7 +27,7 @@ beforeEach(() => {
 
 describe('Settings', () => {
   it('loads and displays current icloud_folder', async () => {
-    mockGetSettings.mockResolvedValue({ icloud_folder: '/photos/icloud' });
+    mockGetSettings.mockResolvedValue({ icloud_folder: '/photos/icloud', duplicate_handling: 'move_only' });
 
     render(<Settings />);
 
@@ -37,8 +37,8 @@ describe('Settings', () => {
   });
 
   it('saves updated value and shows success', async () => {
-    mockGetSettings.mockResolvedValue({ icloud_folder: '/old' });
-    mockUpdateSettings.mockResolvedValue({ icloud_folder: '/new' });
+    mockGetSettings.mockResolvedValue({ icloud_folder: '/old', duplicate_handling: 'move_only' });
+    mockUpdateSettings.mockResolvedValue({ icloud_folder: '/new', duplicate_handling: 'move_only' });
     const user = userEvent.setup();
 
     render(<Settings />);
@@ -58,7 +58,7 @@ describe('Settings', () => {
   });
 
   it('shows error on save failure', async () => {
-    mockGetSettings.mockResolvedValue({ icloud_folder: '/old' });
+    mockGetSettings.mockResolvedValue({ icloud_folder: '/old', duplicate_handling: 'move_only' });
     mockUpdateSettings.mockRejectedValue(new ApiError('internal_error', 'Save failed'));
     const user = userEvent.setup();
 

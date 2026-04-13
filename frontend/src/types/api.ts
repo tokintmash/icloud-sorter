@@ -69,8 +69,10 @@ export interface SortProgressEvent {
 // Settings types
 export interface SettingsResponse {
   icloud_folder: string;
+  duplicate_handling: 'move_only' | 'copy_to_each';
 }
 
 export interface SettingsUpdateRequest {
   icloud_folder?: string;
+  duplicate_handling?: 'move_only' | 'copy_to_each';
 }

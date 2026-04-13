@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import shutil
 from pathlib import Path
 
 from backend.services import state_service, icloud_service
@@ -58,10 +59,11 @@ class SorterService:
         self._current_album = ""
         self._errors = []
 
-        asyncio.create_task(asyncio.to_thread(self._run_sort, rows, icloud_folder))
+        duplicate_handling = settings.get("duplicate_handling", "move_only")
+        asyncio.create_task(asyncio.to_thread(self._run_sort, rows, icloud_folder, duplicate_handling))
         return {"total_files": len(rows)}
 
-    def _run_sort(self, rows: list[dict[str, str]], icloud_folder: str) -> None:
+    def _run_sort(self, rows: list[dict[str, str]], icloud_folder: str, duplicate_handling: str = "move_only") -> None:
         try:
             # Use persisted folder names from album_files table
             folder_map: dict[str, str] = {}
@@ -103,40 +105,68 @@ class SorterService:
                         continue
 
                     # Check if already in target dir
-                    in_target = [c for c in candidates if c.parent == target_dir and c not in claimed]
+                    if duplicate_handling == "copy_to_each":
+                        in_target = [c for c in candidates if c.parent == target_dir]
+                    else:
+                        in_target = [c for c in candidates if c.parent == target_dir and c not in claimed]
                     if in_target:
                         claimed.add(in_target[0])
                         state_service.mark_album_file_sorted(album_id, filename)
                         self._completed_files += 1
                         continue
 
-                    # Find unclaimed candidate
-                    unclaimed = [c for c in candidates if c not in claimed]
-                    if not unclaimed:
-                        state_service.mark_album_file_failed(album_id, filename, "Already moved to another album")
-                        self._failed_files += 1
-                        self._errors.append({"filename": filename, "error": "Already moved to another album", "album": album_name})
-                        continue
+                    if duplicate_handling == "copy_to_each":
+                        source = candidates[0]
 
-                    source = unclaimed[0]
-                    claimed.add(source)
+                        # Determine target path with collision handling
+                        target_path = target_dir / source.name
+                        if target_path.exists():
+                            stem = target_path.stem
+                            suffix = target_path.suffix
+                            counter = 2
+                            while target_path.exists():
+                                target_path = target_dir / f"{stem} ({counter}){suffix}"
+                                counter += 1
 
-                    # Determine target path with collision handling
-                    target_path = target_dir / source.name
-                    if target_path.exists():
-                        stem = target_path.stem
-                        suffix = target_path.suffix
-                        counter = 2
-                        while target_path.exists():
-                            target_path = target_dir / f"{stem} ({counter}){suffix}"
-                            counter += 1
+                        if source not in claimed:
+                            os.rename(str(source), str(target_path))
+                            claimed.add(source)
+                            # Update file index to reflect the move
+                            key = source.name.casefold()
+                            if key in file_index:
+                                file_index[key] = [p if p != source else target_path for p in file_index[key]]
+                            claimed.add(target_path)
+                        else:
+                            shutil.copy2(str(source), str(target_path))
 
-                    os.rename(str(source), str(target_path))
+                    else:
+                        # move_only mode
+                        unclaimed = [c for c in candidates if c not in claimed]
+                        if not unclaimed:
+                            state_service.mark_album_file_failed(album_id, filename, "Already moved to another album")
+                            self._failed_files += 1
+                            self._errors.append({"filename": filename, "error": "Already moved to another album", "album": album_name})
+                            continue
 
-                    # Update file index to reflect the move
-                    key = source.name.casefold()
-                    if key in file_index:
-                        file_index[key] = [p if p != source else target_path for p in file_index[key]]
+                        source = unclaimed[0]
+                        claimed.add(source)
+
+                        # Determine target path with collision handling
+                        target_path = target_dir / source.name
+                        if target_path.exists():
+                            stem = target_path.stem
+                            suffix = target_path.suffix
+                            counter = 2
+                            while target_path.exists():
+                                target_path = target_dir / f"{stem} ({counter}){suffix}"
+                                counter += 1
+
+                        os.rename(str(source), str(target_path))
+
+                        # Update file index to reflect the move
+                        key = source.name.casefold()
+                        if key in file_index:
+                            file_index[key] = [p if p != source else target_path for p in file_index[key]]
 
                     state_service.mark_album_file_sorted(album_id, filename)
                     self._completed_files += 1
