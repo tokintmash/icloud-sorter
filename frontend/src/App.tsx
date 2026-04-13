@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
-import { getSession, getSettings } from './hooks/useApi';
+import { getSession } from './hooks/useApi';
 import AuthScreen from './components/AuthScreen';
-import AlbumBrowser from './components/AlbumBrowser';
-import DownloadProgress from './components/DownloadProgress';
+import AlbumPicker from './components/AlbumPicker';
+import SortProgress from './components/SortProgress';
 import Settings from './components/Settings';
 
 type AuthState = 'loading' | 'unauthenticated' | 'awaiting_2fa' | 'authenticated';
-type Tab = 'albums' | 'downloads' | 'settings';
+type Tab = 'albums' | 'sorting' | 'settings';
 
 export default function App() {
   const [authState, setAuthState] = useState<AuthState>('loading');
   const [appleId, setAppleId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('albums');
-  const [downloadState, setDownloadState] = useState<{ albumIds: string[]; downloadPath: string } | null>(null);
+  const [sortState, setSortState] = useState<{ albumIds: string[] } | null>(null);
 
   useEffect(() => {
     async function checkSession() {
@@ -43,22 +43,16 @@ export default function App() {
   function handleSessionExpired() {
     setAuthState('unauthenticated');
     setAppleId(null);
-    setDownloadState(null);
+    setSortState(null);
   }
 
-  async function handleStartDownload(albumIds: string[]) {
-    try {
-      const settings = await getSettings();
-      setDownloadState({ albumIds, downloadPath: settings.download_path });
-      setActiveTab('downloads');
-    } catch {
-      setDownloadState({ albumIds, downloadPath: '~/icloud-photos' });
-      setActiveTab('downloads');
-    }
+  function handleStartSort(albumIds: string[]) {
+    setSortState({ albumIds });
+    setActiveTab('sorting');
   }
 
-  function handleDownloadComplete() {
-    setDownloadState(null);
+  function handleSortComplete() {
+    setSortState(null);
     setActiveTab('albums');
   }
 
@@ -75,7 +69,7 @@ export default function App() {
     return (
       <div className="app">
         <header className="app-header">
-          <h1>iCloud Photo Downloader</h1>
+          <h1>iCloud Photo Sorter</h1>
         </header>
         <main>
           <AuthScreen
@@ -90,7 +84,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>iCloud Photo Downloader</h1>
+        <h1>iCloud Photo Sorter</h1>
         <div className="header-right">
           {appleId && <span className="session-info">{appleId}</span>}
         </div>
@@ -103,10 +97,10 @@ export default function App() {
           Albums
         </button>
         <button
-          className={activeTab === 'downloads' ? 'active' : ''}
-          onClick={() => setActiveTab('downloads')}
+          className={activeTab === 'sorting' ? 'active' : ''}
+          onClick={() => setActiveTab('sorting')}
         >
-          Downloads
+          Sorting
         </button>
         <button
           className={activeTab === 'settings' ? 'active' : ''}
@@ -117,23 +111,22 @@ export default function App() {
       </nav>
       <main>
         {activeTab === 'albums' && (
-          <AlbumBrowser
+          <AlbumPicker
             onSessionExpired={handleSessionExpired}
-            onStartDownload={handleStartDownload}
+            onStartSort={handleStartSort}
           />
         )}
-        {activeTab === 'downloads' && downloadState && (
-          <DownloadProgress
-            albumIds={downloadState.albumIds}
-            downloadPath={downloadState.downloadPath}
-            onComplete={handleDownloadComplete}
+        {activeTab === 'sorting' && sortState && (
+          <SortProgress
+            albumIds={sortState.albumIds}
+            onComplete={handleSortComplete}
             onSessionExpired={handleSessionExpired}
           />
         )}
-        {activeTab === 'downloads' && !downloadState && (
-          <div className="download-progress">
-            <h2>Downloads</h2>
-            <p>Select albums and click &quot;Download Selected&quot; to start a download.</p>
+        {activeTab === 'sorting' && !sortState && (
+          <div className="sort-progress">
+            <h2>Sorting</h2>
+            <p>Select albums and click &quot;Sort Selected&quot; to start sorting.</p>
           </div>
         )}
         {activeTab === 'settings' && <Settings />}

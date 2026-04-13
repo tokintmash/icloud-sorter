@@ -255,8 +255,8 @@ button:disabled {
   }
 }
 
-/* Album browser */
-.album-browser h2 {
+/* Album picker */
+.album-picker h2 {
   margin-bottom: 16px;
   font-size: 20px;
 }
@@ -302,58 +302,10 @@ button:disabled {
   color: var(--color-text-secondary);
 }
 
-.album-chevron {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  transition: transform 0.2s;
-}
-
-.album-chevron.open {
-  transform: rotate(90deg);
-}
-
-/* Asset list */
-.asset-list {
-  border-top: 1px solid var(--color-border);
-  padding: 16px 20px;
-}
-
-.asset-list table {
-  width: 100%;
-  border-collapse: collapse;
+.album-folder {
   font-size: 13px;
-}
-
-.asset-list th {
-  text-align: left;
-  padding: 8px 12px;
-  font-weight: 500;
   color: var(--color-text-secondary);
-  border-bottom: 1px solid var(--color-border);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.asset-list td {
-  padding: 8px 12px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.asset-list tr:last-child td {
-  border-bottom: none;
-}
-
-.load-more {
-  margin-top: 12px;
-  width: 100%;
-  background: var(--color-bg);
-  color: var(--color-primary);
-  font-weight: 500;
-}
-
-.load-more:hover:not(:disabled) {
-  background: #e8e8ed;
+  white-space: nowrap;
 }
 
 /* Settings */
@@ -366,25 +318,25 @@ button:disabled {
   max-width: 500px;
 }
 
-/* Download Progress */
-.download-progress {
+/* Sort Progress */
+.sort-progress {
   text-align: left;
   padding: 0;
   color: var(--color-text);
 }
 
-.download-progress h2 {
+.sort-progress h2 {
   color: var(--color-text);
   margin-bottom: 16px;
   font-size: 20px;
 }
 
-.download-status {
+.sort-status {
   margin-bottom: 4px;
   font-weight: 500;
 }
 
-.download-current {
+.sort-current {
   font-size: 14px;
   color: var(--color-text-secondary);
   margin-bottom: 16px;
@@ -414,26 +366,12 @@ button:disabled {
   background: var(--color-error);
 }
 
-.progress-bar-fill.paused {
-  background: #f59e0b;
-}
-
 .progress-stats {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
   color: var(--color-text-secondary);
   margin-bottom: 20px;
-}
-
-.download-actions {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.download-actions button {
-  min-width: 100px;
 }
 
 .btn-secondary {
@@ -462,11 +400,11 @@ button:disabled {
   background: #1b5e20;
 }
 
-.download-errors {
+.sort-errors {
   margin-top: 16px;
 }
 
-.download-errors h3 {
+.sort-errors h3 {
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 8px;
@@ -490,17 +428,17 @@ button:disabled {
   border-bottom: none;
 }
 
-.download-summary {
+.sort-summary {
   text-align: center;
   padding: 32px;
 }
 
-.download-summary h3 {
+.sort-summary h3 {
   font-size: 18px;
   margin-bottom: 8px;
 }
 
-.download-summary p {
+.sort-summary p {
   color: var(--color-text-secondary);
   margin-bottom: 20px;
 }
@@ -567,9 +505,5 @@ button:disabled {
 
   .app-nav {
     padding: 0 16px;
-  }
-
-  .asset-list {
-    overflow-x: auto;
   }
 }

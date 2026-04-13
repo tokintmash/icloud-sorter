@@ -3,12 +3,9 @@ import type {
   TwoFactorResponse,
   SessionResponse,
   AlbumListResponse,
-  AssetListResponse,
   SettingsResponse,
   SettingsUpdateRequest,
-  DownloadStartResponse,
-  PauseResponse,
-  CancelResponse,
+  SortStartResponse,
   ErrorResponse,
 } from '../types/api';
 
@@ -75,16 +72,6 @@ export async function getAlbums(): Promise<AlbumListResponse> {
   return apiFetch<AlbumListResponse>('/api/albums');
 }
 
-export async function getAlbumAssets(
-  albumId: string,
-  offset = 0,
-  limit = 200,
-): Promise<AssetListResponse> {
-  return apiFetch<AssetListResponse>(
-    `/api/albums/${encodeURIComponent(albumId)}/assets?offset=${offset}&limit=${limit}`,
-  );
-}
-
 // Settings
 export async function getSettings(): Promise<SettingsResponse> {
   return apiFetch<SettingsResponse>('/api/settings');
@@ -97,25 +84,10 @@ export async function updateSettings(settings: SettingsUpdateRequest): Promise<S
   });
 }
 
-// Download
-export async function startDownload(
-  albumIds: string[],
-  downloadPath: string,
-): Promise<DownloadStartResponse> {
-  return apiFetch<DownloadStartResponse>('/api/download/start', {
+// Sort
+export async function startSort(albumIds: string[]): Promise<SortStartResponse> {
+  return apiFetch<SortStartResponse>('/api/sort/start', {
     method: 'POST',
-    body: JSON.stringify({ album_ids: albumIds, download_path: downloadPath }),
+    body: JSON.stringify({ album_ids: albumIds }),
   });
-}
-
-export async function pauseDownload(): Promise<PauseResponse> {
-  return apiFetch<PauseResponse>('/api/download/pause', { method: 'POST' });
-}
-
-export async function resumeDownload(): Promise<PauseResponse> {
-  return apiFetch<PauseResponse>('/api/download/resume', { method: 'POST' });
-}
-
-export async function cancelDownload(): Promise<CancelResponse> {
-  return apiFetch<CancelResponse>('/api/download/cancel', { method: 'POST' });
 }

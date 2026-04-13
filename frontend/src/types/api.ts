@@ -41,76 +41,36 @@ export interface AlbumListResponse {
   albums: AlbumInfo[];
 }
 
-export interface AssetInfo {
-  id: string;
-  filename: string;
-  size_bytes: number;
-  item_type: string;
-  created_at: string;
-  width: number;
-  height: number;
-}
-
-export interface AssetListResponse {
-  assets: AssetInfo[];
-  total: number;
-  offset: number;
-  limit: number;
-}
-
-// Download types
-export interface DownloadStartRequest {
+// Sort types
+export interface SortStartRequest {
   album_ids: string[];
-  download_path: string;
 }
 
-export interface DownloadStartResponse {
-  job_id: string;
-  total_assets: number;
-  estimated_bytes: number;
+export interface SortStartResponse {
+  total_files: number;
 }
 
-export interface DownloadError {
-  asset_id: string;
+export interface SortError {
   filename: string;
   error: string;
-  attempts: number;
+  album: string;
 }
 
-export interface DownloadProgressEvent {
-  status: 'downloading' | 'paused' | 'complete' | 'cancelled' | 'error';
-  total_assets: number;
-  completed_assets: number;
-  failed_assets: number;
-  skipped_assets: number;
-  bytes_downloaded: number;
-  bytes_total: number;
+export interface SortProgressEvent {
+  status: 'sorting' | 'complete' | 'error';
+  total_files: number;
+  completed_files: number;
+  failed_files: number;
   current_file: string;
   current_album: string;
-  speed_bytes_per_sec: number;
-  eta_seconds: number;
-  errors: DownloadError[];
-}
-
-export interface PauseResponse {
-  status: string;
-}
-
-export interface CancelResponse {
-  status: string;
+  errors: SortError[];
 }
 
 // Settings types
 export interface SettingsResponse {
-  download_path: string;
-  concurrent_downloads: number;
-  metadata_delay_ms: number;
-  max_retries: number;
+  icloud_folder: string;
 }
 
 export interface SettingsUpdateRequest {
-  download_path?: string;
-  concurrent_downloads?: number;
-  metadata_delay_ms?: number;
-  max_retries?: number;
+  icloud_folder?: string;
 }
