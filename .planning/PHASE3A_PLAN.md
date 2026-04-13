@@ -59,8 +59,9 @@ Default: `"move_only"` (preserves current behavior)
 
 ### 2. Backend: `backend/models/schemas.py`
 
-- Add `duplicate_handling: str` to `SettingsResponse`
-- Add `duplicate_handling: Optional[str] = None` to `SettingsUpdateRequest`
+- Add `duplicate_handling: Literal["move_only", "copy_to_each"]` to `SettingsResponse`
+- Add `duplicate_handling: Optional[Literal["move_only", "copy_to_each"]] = None` to `SettingsUpdateRequest`
+- Add `from typing import Literal` import
 
 ### 3. Backend: `backend/services/sorter_service.py`
 
@@ -78,10 +79,22 @@ Default: `"move_only"` (preserves current behavior)
 - Subsequent occurrences: `shutil.copy2()` from wherever the file now is (use updated `file_index`)
 - All occurrences marked as `sorted` (no failures for cross-album files)
 
-**Detailed logic change (~lines 113-134):**
+**Important:** Add `import shutil` to the top of `sorter_service.py`.
+
+**`in_target` check (line 106) must also change for `copy_to_each`:**
+The current code filters `claimed` out of the `in_target` list. In `copy_to_each` mode, a file already in the target dir (even if claimed by another album) should still count as "already there" and be marked sorted — no copy needed.
+
+**Detailed logic change (~lines 105-141):**
 
 ```python
-# Current code (move_only — keep as-is for that mode):
+# --- in_target check (line 106) ---
+# move_only mode: current behavior (filter out claimed)
+#   in_target = [c for c in candidates if c.parent == target_dir and c not in claimed]
+# copy_to_each mode: don't filter claimed — if file is in target dir, it's done
+#   in_target = [c for c in candidates if c.parent == target_dir]
+
+# --- main move/copy block (lines 113-141) ---
+# move_only mode (keep existing behavior as-is):
 unclaimed = [c for c in candidates if c not in claimed]
 if not unclaimed:
     state_service.mark_album_file_failed(album_id, filename, "Already moved to another album")
@@ -91,25 +104,24 @@ source = unclaimed[0]
 claimed.add(source)
 os.rename(str(source), str(target_path))
 
-# New code for copy_to_each mode:
-# Pick any candidate (no claimed filtering)
+# copy_to_each mode:
+# Pick any candidate — no claimed filtering
 source = candidates[0]
-if source.parent == target_dir:
-    # Already in target — nothing to do
-    state_service.mark_album_file_sorted(album_id, filename)
-    self._completed_files += 1
-    continue
 target_path = target_dir / source.name
 # ... collision handling (same as existing) ...
 if source not in claimed:
     # First time seeing this file — move it
     os.rename(str(source), str(target_path))
     claimed.add(source)
-    # Update file_index
+    # Update file_index (existing code on line 138-139)
 else:
-    # File already moved to another album — copy from there
+    # File was already moved to another album folder.
+    # source now points to the NEW location (because file_index is
+    # mutated after every move on line 138-139), so copy from there.
     shutil.copy2(str(source), str(target_path))
 ```
+
+**Note:** The `copy_to_each` path relies on `file_index` being mutated after every move (existing line 138-139) so that `candidates[0]` always points to the file's current location on disk, not its original path.
 
 ### 4. Backend: `backend/routers/settings.py`
 
@@ -117,8 +129,8 @@ else:
 
 ### 5. Frontend: `frontend/src/types/api.ts`
 
-- Add `duplicate_handling: string` to `SettingsResponse`
-- Add `duplicate_handling?: string` to `SettingsUpdateRequest`
+- Add `duplicate_handling: 'move_only' | 'copy_to_each'` to `SettingsResponse`
+- Add `duplicate_handling?: 'move_only' | 'copy_to_each'` to `SettingsUpdateRequest`
 
 ### 6. Frontend: `frontend/src/components/Settings.tsx`
 
