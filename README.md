@@ -53,7 +53,7 @@ python -m pytest backend/tests/ -v
 
 # Frontend tests
 cd frontend
-npx vitest run
+npm test
 ```
 
 ## How It Works
