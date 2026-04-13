@@ -323,7 +323,7 @@ icloud-sorter/
 | # | Decision | MVP Choice | Post-MVP Option |
 |---|----------|------------|-----------------|
 | 1 | **File operation** | Move (instant, same drive) | Add copy option |
-| 2 | **Cross-album duplicates** | Move to first album, skip in subsequent | User-configurable: copy each vs move once |
+| 2 | **Cross-album duplicates** | Move to first album, skip in subsequent | Phase 3A: add "copy to each album" option. Deferred: "move + CSV report" (see `PHASE3A_PLAN.md` → Future Option 3) |
 | 3 | **iCloud folder detection** | Try known paths, fall back to manual in Settings | Registry lookup |
 | 4 | **Licensing** | None (open/free) | LemonSqueezy or similar |
 | 5 | **Packaging** | Run from source (python + npm) | PyInstaller `.exe` or Electron |

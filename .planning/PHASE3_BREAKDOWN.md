@@ -7,20 +7,25 @@ Phase 3 from `PLANNING_SORTER_v2.md` is split into 6 independent sub-phases with
 ## Phase 3A: Cross-Album Duplicate Handling
 
 **Status:** Not started  
-**Dependencies:** None (standalone)
+**Dependencies:** None (standalone)  
+**Detailed plan:** `PHASE3A_PLAN.md`
 
-### Requirements
-- Add setting for "copy to each album" vs "move to first album only"
-- Enable the currently-greyed-out option in Settings UI
-- Update `sorter_service.py` to support copy mode (`shutil.copy2` alongside `shutil.move`)
-- Update `state_service.py` if schema changes are needed (e.g., tracking which album a file was moved to)
-- Update `PUT /api/settings` to accept and persist the new option
-- Frontend: enable the disabled radio buttons in Settings
+### Scope (Now)
+Two options for the `duplicate_handling` setting:
+1. **Move to first album only** (`"move_only"`, default) — current behavior, file moves once
+2. **Copy to each album** (`"copy_to_each"`) — file is copied into every album folder it belongs to; each folder is self-contained for archival
+
+### Deferred: Move + Cross-Reference Report
+A third option (`"move_with_report"`) — move once + generate a CSV report listing cross-album membership — may be added later.
+- Zero extra disk usage; useful for users who want to know where files belong without copying
+- When ready to add: ~20 min of work; setting field and UI pattern already in place from options 1 & 2
+- See "Future Option 3" section in `PHASE3A_PLAN.md` for implementation notes
 
 ### Acceptance Criteria
-- User can choose between copy and move for cross-album duplicates
-- Copy mode: file appears in every album folder it belongs to
-- Move mode (current default): file moves to first album, skipped in subsequent
+- User can choose between move-only and copy-to-each in Settings
+- Copy mode: file is copied into every album folder it belongs to
+- Move mode (default): file moves to first album, skipped in subsequent
+- Disk space warning shown in Settings when copy mode is selected
 - Setting persists across app restarts
 
 ---
