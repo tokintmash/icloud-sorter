@@ -3,6 +3,23 @@
 **Source of truth:** `.planning/PLANNING_SORTER_v2.md`  
 **Scope:** Replace the download-based backend with a file-sorting backend. No frontend changes.
 
+## Status: ✅ COMPLETE
+
+Phase 1 backend is fully implemented and verified working on Windows. All work items (W1–W7) are done. The old download-based files (`download.py`, `download_service.py`) have been removed.
+
+### Issues resolved during implementation
+- **Issue #1** (albums not populating DB): Fixed — `GET /api/albums` now calls `sync_album_metadata()` via `asyncio.to_thread()`.
+- **Issue #2** (folder-name determinism): Fixed — `folder_name` is persisted in the `album_files` table during sync; sorter reads it from DB instead of recomputing.
+- **Issue #3** (duplicate filename crash): Fixed — `INSERT OR IGNORE` used in `replace_album_files()`.
+- **Issue #4** (service importing router): Fixed — settings functions moved to `backend/config.py`.
+- **Issue #5** (undeclared error code): Fixed — changed to `file_not_found`.
+- **Issue #6** (idle SSE status): Fixed — `/progress` returns 409 when no sort is active.
+- **Issue #7** (blocking async calls): Fixed — `albums.py` wraps both `get_albums()` and `sync_album_metadata()` with `asyncio.to_thread()`.
+- **Issue #8** (SSE cache header): Fixed — `Cache-Control: no-cache` added.
+
+### Schema note
+The `album_files` table includes a `folder_name` column (not in the original plan) to persist deterministic folder names computed during `sync_album_metadata()`.
+
 ---
 
 ## Current State

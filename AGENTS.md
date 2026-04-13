@@ -6,6 +6,8 @@ This app reads iCloud album metadata via `pyicloud`, matches it to files already
 
 **Source of truth:** `.planning/PLANNING_SORTER_v2.md`
 
+**Current status:** Phase 1 (backend) ✅ complete. Phase 2 (frontend) is next — see `.planning/PLANNING_SORTER_v2.md` §10 Phase 2.
+
 ---
 
 ## Architecture
@@ -90,10 +92,14 @@ CREATE TABLE album_files (
     album_id    TEXT NOT NULL,
     album_name  TEXT NOT NULL,
     filename    TEXT NOT NULL,
-    status      TEXT DEFAULT 'pending',  -- 'pending', 'sorted', 'failed'
+    folder_name TEXT NOT NULL DEFAULT '',
+    status      TEXT NOT NULL DEFAULT 'pending',  -- 'pending', 'sorted', 'failed'
     error       TEXT,
     PRIMARY KEY (album_id, filename)
 );
+
+CREATE INDEX IF NOT EXISTS idx_album_files_status ON album_files(status);
+CREATE INDEX IF NOT EXISTS idx_album_files_album ON album_files(album_id);
 ```
 
 ---
@@ -138,15 +144,22 @@ CREATE TABLE album_files (
 
 **Scope:** Everything under `frontend/`
 
-**Files:**
+**Current state (pre-Phase 2):** Frontend still has old download-based components and types. Phase 2 must rewrite these to match the new sorter backend.
+
+**Existing files (to be rewritten in Phase 2):**
 - `frontend/src/App.tsx` — root, auth state machine, screen routing
-- `frontend/src/components/AuthScreen.tsx` — Apple ID login + 2FA
+- `frontend/src/components/AuthScreen.tsx` — Apple ID login + 2FA *(keep, adapt)*
+- `frontend/src/components/AlbumBrowser.tsx` — old download-oriented album browser *(rewrite → `AlbumPicker.tsx`)*
+- `frontend/src/components/DownloadProgress.tsx` — old download progress *(rewrite → `SortProgress.tsx`)*
+- `frontend/src/components/Settings.tsx` — old download settings *(rewrite for `icloud_folder` only)*
+- `frontend/src/hooks/useApi.ts` — `apiFetch<T>()` + typed endpoint functions *(update endpoints)*
+- `frontend/src/types/api.ts` — **still has old download types** *(rewrite to match backend `schemas.py`)*
+- `frontend/src/styles/index.css` — CSS design system
+
+**Target files (after Phase 2):**
 - `frontend/src/components/AlbumPicker.tsx` — album list with checkboxes, counts, sort button
 - `frontend/src/components/SortProgress.tsx` — progress bar, current file, errors, completion
-- `frontend/src/components/Settings.tsx` — iCloud folder path config
-- `frontend/src/hooks/useApi.ts` — `apiFetch<T>()` + typed endpoint functions
-- `frontend/src/types/api.ts` — TypeScript types matching backend schemas
-- `frontend/src/styles/index.css` — CSS design system
+- `frontend/src/components/Settings.tsx` — iCloud folder path config only
 
 **Key constraints:**
 - React + TypeScript + Vite
@@ -187,6 +200,10 @@ CREATE TABLE album_files (
 
 - ✅ `for album in photos.albums:`
 - ❌ `for album in photos.albums.values():` — `AttributeError`
+
+### pyicloud `PhotoAsset.filename` may fail — use `_get_asset_filename()`
+
+`asset.filename` can raise exceptions for some assets. The `filenameEnc` field may be base64-encoded or plain text. `icloud_service._get_asset_filename()` handles both cases with fallback logic. Always use that helper, not `asset.filename` directly.
 
 ### pyicloud `PhotoAsset.download()` returns raw bytes
 

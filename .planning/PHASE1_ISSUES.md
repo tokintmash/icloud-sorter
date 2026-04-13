@@ -1,12 +1,16 @@
 # Phase 1 Issues
 
+## Status: ✅ ALL RESOLVED
+
+All issues below were fixed during Phase 1 implementation.
+
 Issues found during code review against `PHASE1_PLAN.md` and `AGENTS.md` API contract.
 
 ---
 
 ## Critical (app broken without these)
 
-### 1. `GET /api/albums` does not populate `album_files` table
+### 1. ✅ `GET /api/albums` does not populate `album_files` table
 
 **Files:** `backend/routers/albums.py`, `backend/services/icloud_service.py`
 
@@ -16,7 +20,7 @@ Issues found during code review against `PHASE1_PLAN.md` and `AGENTS.md` API con
 
 ---
 
-### 2. Folder-name determinism is broken for partial album selection
+### 2. ✅ Folder-name determinism is broken for partial album selection
 
 **Files:** `backend/services/sorter_service.py` (lines 57–61)
 
@@ -28,7 +32,7 @@ Currently `_run_sort()` recomputes `_compute_folder_names()` using **only the se
 
 ---
 
-### 3. `sync_album_metadata()` crashes on duplicate filenames within same album
+### 3. ✅ `sync_album_metadata()` crashes on duplicate filenames within same album
 
 **Files:** `backend/services/icloud_service.py` (lines 182–194), `backend/services/state_service.py` (lines 31–35)
 
@@ -40,7 +44,7 @@ DB primary key is `(album_id, filename)`. If an iCloud album contains two assets
 
 ## Moderate (contract violations / layering issues)
 
-### 4. Service imports from router (layering violation)
+### 4. ✅ Service imports from router (layering violation)
 
 **Files:** `backend/services/sorter_service.py` (line 7)
 
@@ -50,7 +54,7 @@ DB primary key is `(album_id, filename)`. If an iCloud album contains two assets
 
 ---
 
-### 5. `POST /api/sort/start` returns undeclared error code `not_found`
+### 5. ✅ `POST /api/sort/start` returns undeclared error code `not_found`
 
 **Files:** `backend/services/sorter_service.py` (line 40), `backend/routers/sort.py` (lines 19–26)
 
@@ -60,7 +64,7 @@ When no pending files exist, the sorter returns `{"error": "not_found", ...}`. T
 
 ---
 
-### 6. SSE progress can emit undocumented `idle` status and stream forever
+### 6. ✅ SSE progress can emit undocumented `idle` status and stream forever
 
 **Files:** `backend/services/sorter_service.py` (line 15), `backend/routers/sort.py` (lines 32–44)
 
@@ -70,7 +74,7 @@ When no pending files exist, the sorter returns `{"error": "not_found", ...}`. T
 
 ---
 
-### 7. Blocking sync calls inside async route handlers
+### 7. ✅ Blocking sync calls inside async route handlers
 
 **Files:** `backend/routers/albums.py`, `backend/services/icloud_service.py`
 
@@ -82,7 +86,7 @@ When no pending files exist, the sorter returns `{"error": "not_found", ...}`. T
 
 ## Minor (best-practice, non-blocking)
 
-### 8. SSE response missing `Cache-Control: no-cache` header
+### 8. ✅ SSE response missing `Cache-Control: no-cache` header
 
 **File:** `backend/routers/sort.py` (line 45)
 
@@ -92,7 +96,7 @@ SSE best practice is to include `Cache-Control: no-cache` to prevent proxies/bro
 
 ---
 
-### 9. Deprecated `@app.on_event("startup")`
+### 9. ⏳ Deprecated `@app.on_event("startup")`
 
 **File:** `backend/app.py` (line 39)
 
@@ -102,7 +106,7 @@ FastAPI's `on_event` is deprecated in favor of the `lifespan` context manager.
 
 ---
 
-### 10. Unsynchronized shared state between threads
+### 10. ⏳ Unsynchronized shared state between threads
 
 **File:** `backend/services/sorter_service.py`
 
