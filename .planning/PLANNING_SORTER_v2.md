@@ -61,9 +61,9 @@ iCloud for Windows syncs all photos into a **flat folder** (`C:\Users\<user>\Pic
 ```
 1. User launches app
 2. User authenticates with Apple ID (pyicloud: SRP + 2FA)
-3. App fetches album list + filenames from iCloud API
-4. App stores { album_id, album_name, filename } rows in SQLite
-5. User sees album list with file counts, picks albums to sort
+3. App fetches album list (names + counts) from iCloud API — fast, no asset iteration
+4. User sees album list with file counts, picks albums to sort
+5. On sort start: app fetches per-file metadata for selected albums only, stores in SQLite
 6. Sorter engine runs:
    - Creates album-named subfolders inside the iCloud Photos folder
    - Moves each file into its album folder
@@ -341,7 +341,7 @@ icloud-sorter/
 |------|--------|------------|
 | **Filename mismatch** between pyicloud and local files | Files can't be sorted | Case-insensitive match, fallback to size+name, report unmatched |
 | **pyicloud auth breakage** (Apple changes endpoints) | App unusable until fix | Monitor pyicloud repo, have fallback messaging in UI |
-| **Large libraries (50K+ photos)** | Slow metadata fetch | Cache in SQLite, show progress during sync |
+| **Large libraries (50K+ photos)** | Slow metadata fetch for selected albums at sort start | Only sync selected albums, cache in SQLite |
 | **iCloud for Windows changes sync folder structure** | Auto-detect breaks | Manual folder picker in Settings as fallback |
 | **Windows-specific filesystem issues** | NTFS long paths, permissions | Use `\\?\` prefix for long paths, handle PermissionError gracefully |
 | **Moving files breaks iCloud sync** | Data loss risk | Test thoroughly; moving within iCloud folder preserves sync per user's confirmation |

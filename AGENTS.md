@@ -56,6 +56,7 @@ Error codes: `invalid_credentials`, `2fa_required`, `2fa_failed`, `session_expir
 **`POST /api/sort/start`**
 - Request: `{ "album_ids": string[] }`
 - Response: `{ "total_files": number }`
+- Syncs per-file metadata from iCloud for selected albums, then starts sorting
 
 **`GET /api/sort/progress`** (SSE stream)
 ```json
