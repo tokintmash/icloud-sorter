@@ -7,6 +7,9 @@ _project_root = str(Path(__file__).resolve().parent.parent)
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
+from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -17,7 +20,14 @@ from backend.routers import auth, albums, sort, settings
 from backend.runtime_paths import frontend_dist
 from backend.lifecycle import can_shutdown, request_shutdown
 
-app = FastAPI(title="iCloud Photo Sorter", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    init_db()
+    yield
+
+
+app = FastAPI(title="iCloud Photo Sorter", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,11 +46,6 @@ FRONTEND_DIST = frontend_dist()
 
 if FRONTEND_DIST.is_dir():
     app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="static-assets")
-
-
-@app.on_event("startup")
-async def startup() -> None:
-    init_db()
 
 
 @app.get("/api/app/health")
