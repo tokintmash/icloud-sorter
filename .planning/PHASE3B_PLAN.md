@@ -9,15 +9,13 @@ The app already serves the React frontend from FastAPI. Electron would add a sec
 ```
 User double-clicks iCloudPhotoSorter.exe
   → desktop_launcher.py (PyInstaller entry point)
-    → Checks if already running on 127.0.0.1:8000
-      → If yes: open browser, exit
-      → If no:
-        → Start uvicorn server (background thread, reload=False)
-        → Poll /api/app/health every 250ms
-        → When ready: open browser
-        → Keep alive until server exits
-    → "Exit App" button in UI → POST /api/app/quit → server.should_exit = True
+    → Start uvicorn server (background thread, reload=False)
+    → Poll /api/app/health every 250ms
+    → When ready: open pywebview window → http://127.0.0.1:8000
+    → On window close: server.should_exit = True → process exits
 ```
+
+Uses **pywebview** for a native app window (uses OS WebView2 on Windows, no bundled Chromium). No browser tabs, no port-conflict UX issues.
 
 ## Tasks (in dependency order)
 
@@ -31,21 +29,20 @@ Shutdown callback system. `register_shutdown_callback()` / `can_shutdown()` / `r
 - Use `runtime_paths.frontend_dist()` for static files
 - Add `GET /api/app/health` → `{"ok": true}`
 - Add `POST /api/app/quit` → graceful shutdown (409 in dev mode)
-- Extract dev startup to `backend/dev_server.py`
+- Extract dev startup logic to `backend/dev_server.py`
+- Keep `__main__` block in `app.py` that calls `dev_server.run()` — `python backend/app.py` must still work
 
 ### 3B.4: `desktop_launcher.py` (depends on 3B.3)
-PyInstaller entry point at repo root. Starts uvicorn with `app` object directly (not import string), polls for readiness, opens browser, handles already-running detection, shows MessageBox on failure.
+PyInstaller entry point at repo root. Starts uvicorn with `app` object directly (not import string) in a background thread, polls `/api/app/health` for readiness, then opens a **pywebview** native window pointing to `http://127.0.0.1:8000`. On window close, sets `server.should_exit = True` and exits. Shows MessageBox on startup failure.
 
 ### 3B.5: Enhance iCloud folder detection (no deps, standalone)
 Add Windows registry lookup to `backend/config.py` before filesystem path fallback. Best-effort via `winreg`.
 
-### 3B.6: Frontend "Exit App" button (depends on 3B.3)
-- `types/api.ts`: `QuitAppResponse`
-- `hooks/useApi.ts`: `quitApp()`
-- `components/Settings.tsx`: "Exit App" button, handles 409 gracefully
+### 3B.6: Frontend cleanup (depends on 3B.3)
+No "Exit App" button needed — closing the pywebview window shuts everything down. This task is reserved for any minor frontend adjustments needed for the desktop context (e.g., hiding browser-only UI if any).
 
 ### 3B.7: `icloud_sorter.spec` (depends on 3B.4)
-PyInstaller spec file. Bundles `frontend/dist/`, hidden imports for uvicorn/pyicloud, certifi CA data. Also create `requirements-build.txt`.
+PyInstaller spec file. Bundles `frontend/dist/`, hidden imports for uvicorn/pyicloud/pywebview, certifi CA data. Also create `requirements-build.txt` (includes `pywebview`).
 
 ### 3B.8: `scripts/build_windows.ps1` (depends on 3B.7)
 Build script: frontend build → pip install → PyInstaller run.
@@ -53,12 +50,17 @@ Build script: frontend build → pip install → PyInstaller run.
 ### 3B.9: Test & iterate (depends on 3B.8)
 Test `onedir` + `console=True` first to debug, then switch to `onefile` + `console=False` for release.
 
+### 3B.10: Tests & README (depends on 3B.9)
+- Add/update tests for new modules: `runtime_paths.py`, `lifecycle.py`, health/quit endpoints, registry-based folder detection
+- Update `README.md` with: build instructions, how to run the `.exe`, system requirements (Windows 10/11, WebView2)
+- Run full test suite (`pytest` + `npm run build`) and fix any failures before marking phase complete
+
 ## Dependency Graph
 
 ```
 3B.1 (runtime_paths) ─┐
-3B.2 (lifecycle)      ─┼─→ 3B.3 (app.py) ─→ 3B.4 (launcher) ─→ 3B.7 (spec) ─→ 3B.8 (build script) ─→ 3B.9 (test)
-                       │                  └─→ 3B.6 (frontend exit button)
+3B.2 (lifecycle)      ─┼─→ 3B.3 (app.py) ─→ 3B.4 (launcher) ─→ 3B.7 (spec) ─→ 3B.8 (build script) ─→ 3B.9 (test) ─→ 3B.10 (tests & README)
+                       │                  └─→ 3B.6 (frontend cleanup)
 3B.5 (registry detect) ── standalone
 ```
 
@@ -80,9 +82,6 @@ Test `onedir` + `console=True` first to debug, then switch to `onefile` + `conso
 |------|---------|
 | `backend/app.py` | Use runtime_paths, add health/quit endpoints, remove `__main__` |
 | `backend/config.py` | Add registry-based iCloud folder detection |
-| `frontend/src/types/api.ts` | Add `QuitAppResponse` |
-| `frontend/src/hooks/useApi.ts` | Add `quitApp()` |
-| `frontend/src/components/Settings.tsx` | Add "Exit App" button |
 
 ## Key Constraints & Gotchas
 
@@ -90,8 +89,9 @@ Test `onedir` + `console=True` first to debug, then switch to `onefile` + `conso
 2. **TLS/certifi**: pyicloud needs CA certs. Bundle `certifi` data in spec or auth will fail.
 3. **Frontend paths**: `sys._MEIPASS` changes the root. Must use `runtime_paths.frontend_dist()`.
 4. **SQLite/cookies/settings**: Already stored in `~/.icloud-sorter/` (outside bundle) — no changes needed.
-5. **Port conflicts**: If 8000 is taken and health check fails, show a clear error.
+5. **Port conflicts**: If 8000 is taken, uvicorn will fail to bind. Launcher catches this and shows a MessageBox error.
 6. **One-file cold start**: `--onefile` extracts to temp on launch (~5-10s). Acceptable for Phase 3B.
+7. **pywebview + WebView2**: Windows 10/11 ships with WebView2. No extra runtime needed. pywebview uses it automatically.
 
 ## What's NOT in scope
 
@@ -99,4 +99,4 @@ Test `onedir` + `console=True` first to debug, then switch to `onefile` + `conso
 - Auto-updates (Phase 3C/3D territory)
 - Installer/MSI (portable `.exe` is sufficient for MVP)
 - macOS/Linux packaging (Windows-only for now)
-- pywebview native window (browser-based is fine for Phase 3B)
+- Multi-instance prevention (if user double-clicks twice, two windows open — acceptable for MVP)
