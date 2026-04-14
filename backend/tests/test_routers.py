@@ -158,16 +158,17 @@ def test_sort_progress_sse_stream(mock_sorter, client):
 
 @patch("backend.routers.settings.load_settings")
 def test_get_settings(mock_load, client):
-    mock_load.return_value = {"icloud_folder": "/test/path"}
+    mock_load.return_value = {"icloud_folder": "/test/path", "duplicate_handling": "move_only"}
     resp = client.get("/api/settings")
     assert resp.status_code == 200
     assert resp.json()["icloud_folder"] == "/test/path"
+    assert resp.json()["duplicate_handling"] == "move_only"
 
 
 @patch("backend.routers.settings.save_settings")
 @patch("backend.routers.settings.load_settings")
 def test_put_settings(mock_load, mock_save, client):
-    mock_load.return_value = {"icloud_folder": "/old/path"}
+    mock_load.return_value = {"icloud_folder": "/old/path", "duplicate_handling": "move_only"}
     resp = client.put("/api/settings", json={"icloud_folder": "/new/path"})
     assert resp.status_code == 200
     assert resp.json()["icloud_folder"] == "/new/path"
