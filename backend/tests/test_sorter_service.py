@@ -126,11 +126,13 @@ def test_cross_album_duplicate(tmp_db, tmp_path, sorter):
         str(tmp_path),
     )
 
-    # File moves from root → Album1, then Album1 → Album2 (file_index updated
-    # but claimed set only tracks source, not target). Both marked sorted.
+    # move_only mode (default): file moves to first album, second is marked failed
     summaries = get_album_summaries()
     sorted_total = sum(s["sorted_count"] for s in summaries)
-    assert sorted_total == 2
+    failed_total = sum(s["failed_count"] for s in summaries)
+    assert sorted_total == 1
+    assert failed_total == 1
+    assert (tmp_path / "Album1" / "IMG_001.HEIC").exists()
 
 
 def test_case_insensitive_matching(tmp_db, tmp_path, sorter):
@@ -208,8 +210,10 @@ def test_file_index_updated_after_move(tmp_db, tmp_path, sorter):
         str(tmp_path),
     )
 
-    # File index is updated after move, so Album2 finds the file at its new
-    # location and moves it again. Both albums are marked sorted.
+    # move_only mode: file moves to Album1, Album2 is marked failed
+    # (file_index is updated but target_path is also claimed, preventing re-move)
     summaries = get_album_summaries()
     total_sorted = sum(s["sorted_count"] for s in summaries)
-    assert total_sorted == 2
+    total_failed = sum(s["failed_count"] for s in summaries)
+    assert total_sorted == 1
+    assert total_failed == 1
