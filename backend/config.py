@@ -1,4 +1,5 @@
 import json
+import sys
 from pathlib import Path
 
 APP_STATE_DIR: Path = Path.home() / ".icloud-sorter"
@@ -15,7 +16,32 @@ _AUTO_DETECT_PATHS = [
 ]
 
 
+def _detect_icloud_folder_registry() -> str | None:
+    """Try to find the iCloud Photos folder via the Windows registry."""
+    if sys.platform != "win32":
+        return None
+    try:
+        import winreg
+
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Apple Inc.\iCloud\iCloudDriveDesktop",
+        )
+        try:
+            value, _ = winreg.QueryValueEx(key, "PhotosPath")
+            if value and Path(value).exists():
+                return str(Path(value))
+        finally:
+            winreg.CloseKey(key)
+    except (OSError, ImportError, FileNotFoundError):
+        pass
+    return None
+
+
 def _detect_icloud_folder() -> str:
+    registry_path = _detect_icloud_folder_registry()
+    if registry_path:
+        return registry_path
     for p in _AUTO_DETECT_PATHS:
         if p.exists():
             return str(p)
