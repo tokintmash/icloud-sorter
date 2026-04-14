@@ -6,7 +6,7 @@ Phase 3 from `PLANNING_SORTER_v2.md` is split into 6 independent sub-phases with
 
 ## Phase 3A: Cross-Album Duplicate Handling
 
-**Status:** Not started  
+**Status:** ✅ Complete  
 **Dependencies:** None (standalone)  
 **Detailed plan:** `PHASE3A_PLAN.md`
 
