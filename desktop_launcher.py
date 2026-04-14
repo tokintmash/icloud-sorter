@@ -94,6 +94,8 @@ def main() -> None:
     try:
         import webview
 
+        from backend.lifecycle import register_shutdown_callback
+
         window = webview.create_window(
             "iCloud Photo Sorter",
             f"http://{HOST}:{PORT}",
@@ -101,6 +103,7 @@ def main() -> None:
             height=768,
             min_size=(800, 600),
         )
+        register_shutdown_callback(window.destroy)
         webview.start()
     except Exception as e:
         _show_error(f"Failed to open application window:\n{e}")

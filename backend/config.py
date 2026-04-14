@@ -23,16 +23,21 @@ def _detect_icloud_folder_registry() -> str | None:
     try:
         import winreg
 
-        key = winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER,
-            r"Software\Apple Inc.\iCloud\iCloudDriveDesktop",
-        )
-        try:
-            value, _ = winreg.QueryValueEx(key, "PhotosPath")
-            if value and Path(value).exists():
-                return str(Path(value))
-        finally:
-            winreg.CloseKey(key)
+        _REG_PATHS = [
+            (r"Software\Apple Inc.\iCloud\iCloudDriveDesktop", "PhotosPath"),
+            (r"Software\Apple Inc.\Internet Services", "PhotosPath"),
+        ]
+        for subkey, val_name in _REG_PATHS:
+            try:
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, subkey)
+                try:
+                    value, _ = winreg.QueryValueEx(key, val_name)
+                    if value and Path(value).exists():
+                        return str(Path(value))
+                finally:
+                    winreg.CloseKey(key)
+            except (OSError, FileNotFoundError):
+                continue
     except (OSError, ImportError, FileNotFoundError):
         pass
     return None

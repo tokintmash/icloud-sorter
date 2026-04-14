@@ -65,8 +65,8 @@ async def spa_fallback(request: Request, full_path: str) -> FileResponse | JSONR
         return JSONResponse(status_code=404, content={"error": "not_found", "message": "API endpoint not found"})
 
     if FRONTEND_DIST.is_dir():
-        file_path = FRONTEND_DIST / full_path
-        if file_path.is_file():
+        file_path = (FRONTEND_DIST / full_path).resolve()
+        if file_path.is_relative_to(FRONTEND_DIST.resolve()) and file_path.is_file():
             return FileResponse(str(file_path))
 
         index_path = FRONTEND_DIST / "index.html"
