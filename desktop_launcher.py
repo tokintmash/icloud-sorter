@@ -5,10 +5,18 @@ ready, then opens a pywebview native window. Closing the window shuts
 everything down.
 """
 
+import os
 import sys
 import threading
 import time
 from pathlib import Path
+
+# When PyInstaller runs with console=False, sys.stdout/stderr are None.
+# Redirect to devnull before importing anything that touches them.
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w")
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w")
 
 # Ensure project root on sys.path for dev runs
 _project_root = str(Path(__file__).resolve().parent)

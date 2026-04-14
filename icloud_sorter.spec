@@ -3,6 +3,7 @@
 
 import os
 import certifi
+import fido2
 
 block_cipher = None
 
@@ -13,6 +14,7 @@ a = Analysis(
     datas=[
         ('frontend/dist', 'frontend/dist'),
         (certifi.where(), 'certifi'),
+        (os.path.join(os.path.dirname(fido2.__file__), 'public_suffix_list.dat'), 'fido2'),
     ],
     hiddenimports=[
         'uvicorn',
