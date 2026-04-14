@@ -35,17 +35,17 @@ A third option (`"move_with_report"`) — move once + generate a CSV report list
 **Status:** Not started  
 **Dependencies:** None (standalone)
 
-### Requirements
-- Bundle backend + frontend into a single distributable `.exe`
-- Decide packaging approach:
-  - **Option A: PyInstaller** — bundle Python backend + pre-built `frontend/dist/` into one executable
-  - **Option B: Electron** — wrap React frontend in Electron, spawn Python backend as child process
+### Approach: PyInstaller + pywebview
+- **PyInstaller** bundles Python backend + pre-built `frontend/dist/` into one executable
+- **pywebview** provides a native app window (uses OS WebView2 on Windows — no bundled Chromium)
+- No browser tabs — app opens in its own window; closing the window exits the app
 - Auto-detect iCloud folder on first launch (registry lookup + known paths)
-- App should launch with a single click — no Python/Node installation required
-- Installer or portable `.exe`
+- App launches with a single click — no Python/Node installation required
+- Portable `.exe` (no installer needed for MVP)
+- **Detailed plan:** `PHASE3B_PLAN.md`
 
 ### Acceptance Criteria
-- User downloads one file, runs it, app opens in browser or native window
+- User downloads one file, runs it, app opens in a native window
 - No manual dependency installation required
 - Works on Windows 10/11 x64
 
