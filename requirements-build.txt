@@ -1,4 +1,5 @@
 -r backend/requirements.txt
+pythonnet>=3.1.0rc0
 pywebview>=5.0
 pyinstaller>=6.0
 certifi
