@@ -1,6 +1,6 @@
 # Phase 3A: Cross-Album Duplicate Handling — Implementation Plan
 
-**Status:** Not started  
+**Status:** ✅ Complete  
 **Dependencies:** None (standalone)
 
 ---
@@ -163,13 +163,13 @@ else:
 
 ## Acceptance Criteria
 
-- [ ] Settings UI shows two radio options for duplicate handling
-- [ ] Default is "Move to first album only" (matches current behavior exactly)
-- [ ] "Copy to each album" mode: files are copied (`shutil.copy2`) into every album folder
-- [ ] "Copy to each album" mode: no files are marked as failed due to cross-album duplicates
-- [ ] "Copy to each album" mode: disk space warning shown in Settings UI
-- [ ] Setting persists across app restarts
-- [ ] Frontend builds with zero TS errors
+- [x] Settings UI shows two radio options for duplicate handling
+- [x] Default is "Move to first album only" (matches current behavior exactly)
+- [x] "Copy to each album" mode: files are copied (`shutil.copy2`) into every album folder
+- [x] "Copy to each album" mode: no files are marked as failed due to cross-album duplicates
+- [x] "Copy to each album" mode: disk space warning shown in Settings UI
+- [x] Setting persists across app restarts
+- [x] Frontend builds with zero TS errors
 
 ---
 

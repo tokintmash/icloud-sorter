@@ -6,7 +6,7 @@ Phase 3 from `PLANNING_SORTER_v2.md` is split into 6 independent sub-phases with
 
 ## Phase 3A: Cross-Album Duplicate Handling
 
-**Status:** Not started  
+**Status:** ✅ Complete  
 **Dependencies:** None (standalone)  
 **Detailed plan:** `PHASE3A_PLAN.md`
 
@@ -32,20 +32,20 @@ A third option (`"move_with_report"`) — move once + generate a CSV report list
 
 ## Phase 3B: Desktop Packaging
 
-**Status:** Not started  
+**Status:** ✅ Complete  
 **Dependencies:** None (standalone)
 
-### Requirements
-- Bundle backend + frontend into a single distributable `.exe`
-- Decide packaging approach:
-  - **Option A: PyInstaller** — bundle Python backend + pre-built `frontend/dist/` into one executable
-  - **Option B: Electron** — wrap React frontend in Electron, spawn Python backend as child process
+### Approach: PyInstaller + pywebview
+- **PyInstaller** bundles Python backend + pre-built `frontend/dist/` into one executable
+- **pywebview** provides a native app window (uses OS WebView2 on Windows — no bundled Chromium)
+- No browser tabs — app opens in its own window; closing the window exits the app
 - Auto-detect iCloud folder on first launch (registry lookup + known paths)
-- App should launch with a single click — no Python/Node installation required
-- Installer or portable `.exe`
+- App launches with a single click — no Python/Node installation required
+- Portable `.exe` (no installer needed for MVP)
+- **Detailed plan:** `PHASE3B_PLAN.md`
 
 ### Acceptance Criteria
-- User downloads one file, runs it, app opens in browser or native window
+- User downloads one file, runs it, app opens in a native window
 - No manual dependency installation required
 - Works on Windows 10/11 x64
 
@@ -54,7 +54,8 @@ A third option (`"move_with_report"`) — move once + generate a CSV report list
 ## Phase 3C: CI/CD for Builds & Releases
 
 **Status:** Not started  
-**Dependencies:** Phase 3B (needs a package to build)
+**Dependencies:** Phase 3B (complete)  
+**Detailed plan:** `PHASE3C_PLAN.md`
 
 ### Requirements
 - GitHub Actions workflow (`.github/workflows/build.yml`):

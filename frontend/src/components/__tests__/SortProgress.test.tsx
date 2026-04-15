@@ -31,6 +31,7 @@ class MockEventSource {
   onerror: (() => void) | null = null;
   close = vi.fn();
   constructor() {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     mockEventSource = this;
   }
 }

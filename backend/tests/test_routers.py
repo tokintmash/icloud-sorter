@@ -1,5 +1,5 @@
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -148,7 +148,7 @@ def test_sort_progress_sse_stream(mock_sorter, client):
     assert "text/event-stream" in resp.headers["content-type"]
     # Parse first SSE event
     lines = resp.text.strip().split("\n")
-    data_line = [l for l in lines if l.startswith("data: ")][0]
+    data_line = [line for line in lines if line.startswith("data: ")][0]
     event_data = json.loads(data_line[6:])
     assert event_data["status"] == "complete"
     assert event_data["total_files"] == 10
@@ -158,16 +158,17 @@ def test_sort_progress_sse_stream(mock_sorter, client):
 
 @patch("backend.routers.settings.load_settings")
 def test_get_settings(mock_load, client):
-    mock_load.return_value = {"icloud_folder": "/test/path"}
+    mock_load.return_value = {"icloud_folder": "/test/path", "duplicate_handling": "move_only"}
     resp = client.get("/api/settings")
     assert resp.status_code == 200
     assert resp.json()["icloud_folder"] == "/test/path"
+    assert resp.json()["duplicate_handling"] == "move_only"
 
 
 @patch("backend.routers.settings.save_settings")
 @patch("backend.routers.settings.load_settings")
 def test_put_settings(mock_load, mock_save, client):
-    mock_load.return_value = {"icloud_folder": "/old/path"}
+    mock_load.return_value = {"icloud_folder": "/old/path", "duplicate_handling": "move_only"}
     resp = client.put("/api/settings", json={"icloud_folder": "/new/path"})
     assert resp.status_code == 200
     assert resp.json()["icloud_folder"] == "/new/path"

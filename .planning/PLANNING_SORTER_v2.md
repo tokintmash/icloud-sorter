@@ -50,10 +50,10 @@ iCloud for Windows syncs all photos into a **flat folder** (`C:\Users\<user>\Pic
 | **CI/CD** | GitHub Actions | Build + test. |
 
 ### Post-MVP considerations
-- **Desktop packaging:** Electron or PyInstaller for `.exe` distribution
+- **Desktop packaging:** PyInstaller + pywebview for `.exe` distribution (native window, no browser)
 - **Licensing:** Keygen.sh / LemonSqueezy / Gumroad
 - **Website:** Landing page + purchase flow
-- **Auto-update:** electron-updater or custom
+- **Auto-update:** custom update check (no Electron)
 - **Code signing:** Windows certificate for installer
 
 ## 4. Core Data Flow
@@ -314,9 +314,10 @@ icloud-sorter/
 1. Licensing integration
 2. Cross-album duplicate handling option in Settings
 3. Website + purchase flow
-4. Desktop packaging (Electron or PyInstaller)
-5. CI/CD for releases
+4. Desktop packaging (PyInstaller + pywebview) ✅
+5. CI/CD for releases ✅
 6. Code signing
+7. **Remove beta expiry** before v1.0 release — see `.planning/BETA_REMOVAL.md` for full checklist
 
 ## 11. Key Design Decisions
 
@@ -326,7 +327,7 @@ icloud-sorter/
 | 2 | **Cross-album duplicates** | Move to first album, skip in subsequent | Phase 3A: add "copy to each album" option. Deferred: "move + CSV report" (see `PHASE3A_PLAN.md` → Future Option 3) |
 | 3 | **iCloud folder detection** | Try known paths, fall back to manual in Settings | Registry lookup |
 | 4 | **Licensing** | None (open/free) | LemonSqueezy or similar |
-| 5 | **Packaging** | Run from source (python + npm) | PyInstaller `.exe` or Electron |
+| 5 | **Packaging** | Run from source (python + npm) | PyInstaller + pywebview `.exe` |
 
 ## 12. What to Delete from Current Codebase
 

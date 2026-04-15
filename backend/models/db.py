@@ -1,5 +1,4 @@
 import sqlite3
-from pathlib import Path
 
 from backend.config import STATE_DB_PATH
 

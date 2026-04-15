@@ -45,6 +45,33 @@ Then open `http://localhost:8000` in your browser.
 
 See the [Development Guide](docs/DEVELOPMENT.md) for running the project in development mode with hot reloading.
 
+## Desktop App (Windows .exe)
+
+Build a standalone desktop application that runs in a native window (no browser needed):
+
+**Requirements:** Windows 10/11 (WebView2 is included with the OS)
+
+```powershell
+# Install build dependencies
+pip install -r requirements-build.txt
+
+# Build (frontend + PyInstaller)
+.\scripts\build_windows.ps1
+```
+
+The output is `dist\iCloudPhotoSorter\iCloudPhotoSorter.exe` — double-click to run.
+
+## Releasing
+
+Push a version tag to trigger a GitHub Release with the built `.zip` automatically:
+
+```powershell
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+No code changes required — the CI pipeline runs lint, tests, builds the exe, and publishes the release.
+
 ## Testing
 
 ```bash

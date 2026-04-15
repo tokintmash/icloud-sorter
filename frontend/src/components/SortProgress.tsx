@@ -138,7 +138,7 @@ export default function SortProgress({
           </p>
           {progress.errors.length > 0 && (
             <div className="sort-errors">
-              <h3>Errors ({progress.errors.length})</h3>
+              <h3>Skipped files ({progress.errors.length})</h3>
               <ul className="error-list">
                 {progress.errors.map((e, i) => (
                   <li key={`${e.filename}-${i}`}>
@@ -185,7 +185,7 @@ export default function SortProgress({
 
       {progress.errors.length > 0 && (
         <div className="sort-errors">
-          <h3>Errors ({progress.errors.length})</h3>
+          <h3>Skipped files ({progress.errors.length})</h3>
           <ul className="error-list">
             {visibleErrors.map((e, i) => (
               <li key={`${e.filename}-${i}`}>

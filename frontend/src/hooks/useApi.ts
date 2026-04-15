@@ -7,6 +7,7 @@ import type {
   SettingsUpdateRequest,
   SortStartResponse,
   ErrorResponse,
+  BetaStatusResponse,
 } from '../types/api';
 
 export class ApiError extends Error {
@@ -82,6 +83,11 @@ export async function updateSettings(settings: SettingsUpdateRequest): Promise<S
     method: 'PUT',
     body: JSON.stringify(settings),
   });
+}
+
+// Beta
+export async function getBetaStatus(): Promise<BetaStatusResponse> {
+  return apiFetch<BetaStatusResponse>('/api/app/beta');
 }
 
 // Sort

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Literal, Optional
 
 
 # --- Standard Error ---
@@ -78,7 +78,9 @@ class SortProgressEvent(BaseModel):
 
 class SettingsResponse(BaseModel):
     icloud_folder: str
+    duplicate_handling: Literal["move_only", "copy_to_each"]
 
 
 class SettingsUpdateRequest(BaseModel):
     icloud_folder: Optional[str] = None
+    duplicate_handling: Optional[Literal["move_only", "copy_to_each"]] = None

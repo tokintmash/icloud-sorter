@@ -1,4 +1,3 @@
-import json
 from unittest.mock import patch
 
 from backend.services.state_service import (
