@@ -53,6 +53,13 @@ async def health() -> dict[str, bool]:
     return {"ok": True}
 
 
+@app.get("/api/app/beta")  # BETA: remove for v1.0
+async def beta_status() -> dict:
+    from backend.beta import get_beta_status
+
+    return get_beta_status()
+
+
 @app.post("/api/app/quit")
 async def quit_app() -> JSONResponse:
     if not can_shutdown():

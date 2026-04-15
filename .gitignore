@@ -13,6 +13,7 @@ frontend/dist/
 # build
 build/
 dist/
+backend/_beta_stamp.py
 
 # App data
 *.db

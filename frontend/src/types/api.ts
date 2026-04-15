@@ -66,6 +66,14 @@ export interface SortProgressEvent {
   errors: SortError[];
 }
 
+// Beta types
+export interface BetaStatusResponse {
+  is_beta: boolean;
+  expired: boolean;
+  expires_on: string | null;
+  days_remaining: number | null;
+}
+
 // Settings types
 export interface SettingsResponse {
   icloud_folder: string;

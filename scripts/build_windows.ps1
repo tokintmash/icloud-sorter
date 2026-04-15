@@ -24,7 +24,11 @@ Write-Host "=== Step 2: Install Python dependencies ===" -ForegroundColor Cyan
 pip install --pre -r requirements-build.txt
 if ($LASTEXITCODE -ne 0) { Write-Error "pip install failed"; exit 1 }
 
-Write-Host "=== Step 3: Run PyInstaller ===" -ForegroundColor Cyan
+Write-Host "=== Step 3: Stamp beta build date ===" -ForegroundColor Cyan
+python scripts/stamp_beta.py
+if ($LASTEXITCODE -ne 0) { Write-Error "Beta stamp failed"; exit 1 }
+
+Write-Host "=== Step 4: Run PyInstaller ===" -ForegroundColor Cyan
 pyinstaller icloud_sorter.spec --noconfirm
 if ($LASTEXITCODE -ne 0) { Write-Error "PyInstaller failed"; exit 1 }
 
