@@ -34,11 +34,14 @@ on:
 ```yaml
 on:
   push:
-    branches: [main]
+    branches: [master]
     tags: ['v*']
   pull_request:
-    branches: [main]
+    branches: [master]
+  workflow_dispatch:
 ```
+
+`workflow_dispatch` allows manual triggering from the GitHub Actions UI (useful for testing).
 
 #### Jobs
 
@@ -172,7 +175,7 @@ push to main / PR                     push v* tag
 - **`fido2` data file:** The `.spec` file already handles bundling `fido2/public_suffix_list.dat` (Phase 3B fix #6). PyInstaller on CI will pick it up automatically.
 - **`npm ci` vs `npm install`:** CI uses `npm ci` for deterministic installs from `package-lock.json`. Requires the lockfile to be committed.
 - **Caching:** pip and npm caches speed up repeat runs. Cache keys are based on lockfile/requirements hashes.
-- **Branch protection:** After the workflow works, enable "Require status checks to pass" on `main` in GitHub repo settings. This is a manual GitHub UI step, not automated.
+- **Branch protection:** After the workflow works, enable "Require status checks to pass" on `master` in GitHub repo settings. This is a manual GitHub UI step, not automated.
 - **WebView2 on CI:** Not needed — CI only builds the exe, doesn't run the desktop app. pywebview/pythonnet install in build job but are never invoked.
 
 ---
@@ -183,7 +186,7 @@ push to main / PR                     push v* tag
 2. **Create `requirements-ci.txt`** (1 min)
 3. **Create `.github/workflows/build.yml`** (20 min)
 4. **Run linters locally to fix any pre-existing violations** — `ruff check backend/` and `cd frontend && npm run lint` (10 min)
-5. **Push to `main` and verify workflow passes** (5 min)
+5. **Push to `ci-cd` branch, open PR against `master`, verify workflow passes** (5 min)
 6. **Test release flow:** create and push a `v0.1.0-beta` tag, verify GitHub Release is created with `.zip` (5 min)
 
 **Estimated total: ~45 minutes**
@@ -193,8 +196,9 @@ push to main / PR                     push v* tag
 ## Acceptance Criteria
 
 - [ ] `.github/workflows/build.yml` exists with lint, test, build, and release jobs
-- [ ] Push to `main` triggers lint + test + frontend build + exe build
-- [ ] PR against `main` triggers lint + test + frontend build (no exe build)
+- [ ] Push to `master` triggers lint + test + frontend build + exe build
+- [ ] PR against `master` triggers lint + test + frontend build (no exe build)
+- [ ] Manual trigger via `workflow_dispatch` works from GitHub UI
 - [ ] Pushing a `v*` tag creates a GitHub Release with a downloadable `.zip` containing the exe
 - [ ] Python lint (`ruff`) passes with zero errors
 - [ ] TypeScript lint (`eslint`) passes with zero errors
