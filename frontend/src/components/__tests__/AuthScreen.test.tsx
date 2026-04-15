@@ -16,10 +16,9 @@ vi.mock('../../hooks/useApi', () => ({
   },
 }));
 
-import { login, submit2fa, ApiError } from '../../hooks/useApi';
+import { login, ApiError } from '../../hooks/useApi';
 
 const mockLogin = vi.mocked(login);
-const mockSubmit2fa = vi.mocked(submit2fa);
 
 beforeEach(() => {
   vi.clearAllMocks();

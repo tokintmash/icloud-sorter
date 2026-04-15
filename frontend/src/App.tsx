@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getSession } from './hooks/useApi';
+import { getSession, getBetaStatus } from './hooks/useApi';
+import type { BetaStatusResponse } from './types/api';
 import AuthScreen from './components/AuthScreen';
 import AlbumPicker from './components/AlbumPicker';
 import SortProgress from './components/SortProgress';
@@ -13,9 +14,19 @@ export default function App() {
   const [appleId, setAppleId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('albums');
   const [sortState, setSortState] = useState<{ albumIds: string[] } | null>(null);
+  const [betaStatus, setBetaStatus] = useState<BetaStatusResponse | null>(null); // BETA: remove for v1.0
 
   useEffect(() => {
-    async function checkSession() {
+    async function init() {
+      // Check beta status first
+      try {
+        const beta = await getBetaStatus();
+        setBetaStatus(beta);
+      } catch {
+        // If beta check fails, allow usage
+      }
+
+      // Then check session
       try {
         const session = await getSession();
         if (session.authenticated) {
@@ -30,7 +41,7 @@ export default function App() {
         setAuthState('unauthenticated');
       }
     }
-    checkSession();
+    init();
   }, []);
 
   function handleAuthenticated() {
@@ -56,11 +67,36 @@ export default function App() {
     setActiveTab('albums');
   }
 
+  const betaBanner = betaStatus?.is_beta && !betaStatus.expired && betaStatus.expires_on ? (
+    <div className="beta-banner">
+      This beta expires on {new Date(betaStatus.expires_on + 'T00:00:00').toLocaleDateString()}.
+    </div>
+  ) : null;
+
   if (authState === 'loading') {
     return (
       <div className="app-loading">
         <span className="spinner" />
         <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (betaStatus?.expired) {
+    return (
+      <div className="app">
+        <header className="app-header">
+          <h1>iCloud Photo Sorter</h1>
+        </header>
+        <main>
+          <div className="auth-screen">
+            <div className="card" style={{ textAlign: 'center' }}>
+              <h2>Beta Expired</h2>
+              <p>This beta version expired on {new Date(betaStatus.expires_on + 'T00:00:00').toLocaleDateString()}.</p>
+              <p>Please contact the developer for a new build.</p>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -71,6 +107,7 @@ export default function App() {
         <header className="app-header">
           <h1>iCloud Photo Sorter</h1>
         </header>
+        {betaBanner}
         <main>
           <AuthScreen
             onAuthenticated={handleAuthenticated}
@@ -89,6 +126,7 @@ export default function App() {
           {appleId && <span className="session-info">{appleId}</span>}
         </div>
       </header>
+      {betaBanner}
       <nav className="app-nav">
         <button
           className={activeTab === 'albums' ? 'active' : ''}

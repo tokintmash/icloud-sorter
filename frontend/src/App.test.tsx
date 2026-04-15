@@ -65,7 +65,7 @@ describe('App', () => {
   it('navigates to Settings tab', async () => {
     mockGetSession.mockResolvedValue({ authenticated: true, apple_id: 'test@apple.com', requires_2fa: false });
     mockGetAlbums.mockResolvedValue({ albums: [] });
-    mockGetSettings.mockResolvedValue({ icloud_folder: '/test' });
+    mockGetSettings.mockResolvedValue({ icloud_folder: '/test', duplicate_handling: 'move_only' });
     const user = userEvent.setup();
 
     render(<App />);

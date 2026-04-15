@@ -219,3 +219,5 @@ Not needed for the sorter (we don't download files), but noted for reference: `a
 - **Python:** 3.10+, type hints, f-strings, `asyncio`
 - **TypeScript:** strict mode, no `any` types
 - **No licensing in MVP** — deferred to post-MVP
+- **Always run tests at the end of a phase** — run `.\venv\Scripts\python.exe -m pytest` (backend) and `cd frontend && npm run build` (frontend) before marking a phase complete. Fix any failures before proceeding.
+- **Add tests for new logic** — when implementing new features or changing behavior, add or update tests to cover the new code paths.

@@ -1,0 +1,118 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  lint-and-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: 'requirements-ci.txt'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install Python deps
+        run: pip install -r requirements-ci.txt
+
+      - name: Install Node deps
+        run: npm ci
+        working-directory: frontend
+
+      - name: Lint Python
+        run: ruff check backend/
+
+      - name: Lint TypeScript
+        run: npm run lint
+        working-directory: frontend
+
+      - name: Test Python
+        run: python -m pytest backend/tests/ -v
+
+      - name: Test TypeScript
+        run: npm run test
+        working-directory: frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: frontend
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+  build-exe:
+    needs: lint-and-test
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: 'requirements-build.txt'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      # requirements-build.txt includes certifi and fido2 which are imported
+      # at parse time by icloud_sorter.spec — they must be installed before
+      # PyInstaller runs.
+      - name: Install build deps
+        run: pip install --pre -r requirements-build.txt
+
+      - name: Stamp beta
+        run: python scripts/stamp_beta.py
+
+      - name: Run PyInstaller
+        run: pyinstaller icloud_sorter.spec --noconfirm
+
+      - name: Verify exe exists
+        run: |
+          if (!(Test-Path dist\iCloudPhotoSorter\iCloudPhotoSorter.exe)) {
+            Write-Error "iCloudPhotoSorter.exe not found"
+            exit 1
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iCloudPhotoSorter
+          path: dist/iCloudPhotoSorter/
+
+  release:
+    needs: build-exe
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: iCloudPhotoSorter
+          path: iCloudPhotoSorter
+
+      - name: Zip artifact
+        run: zip -r "iCloudPhotoSorter-${{ github.ref_name }}.zip" iCloudPhotoSorter/
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: iCloudPhotoSorter-${{ github.ref_name }}.zip
