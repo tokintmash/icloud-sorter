@@ -32,7 +32,7 @@ A third option (`"move_with_report"`) — move once + generate a CSV report list
 
 ## Phase 3B: Desktop Packaging
 
-**Status:** Not started  
+**Status:** ✅ Complete  
 **Dependencies:** None (standalone)
 
 ### Approach: PyInstaller + pywebview
@@ -54,7 +54,8 @@ A third option (`"move_with_report"`) — move once + generate a CSV report list
 ## Phase 3C: CI/CD for Builds & Releases
 
 **Status:** Not started  
-**Dependencies:** Phase 3B (needs a package to build)
+**Dependencies:** Phase 3B (complete)  
+**Detailed plan:** `PHASE3C_PLAN.md`
 
 ### Requirements
 - GitHub Actions workflow (`.github/workflows/build.yml`):
