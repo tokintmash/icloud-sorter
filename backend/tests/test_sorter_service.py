@@ -1,6 +1,4 @@
-import os
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 
@@ -8,7 +6,6 @@ from backend.services.sorter_service import SorterService
 from backend.services.state_service import (
     replace_album_files,
     get_album_summaries,
-    get_pending_album_files,
 )
 
 

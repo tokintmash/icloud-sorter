@@ -1,7 +1,7 @@
 import sqlite3
 from unittest.mock import patch
 
-from backend.models.db import SCHEMA, init_db, get_db
+from backend.models.db import init_db
 
 
 def test_init_db_idempotent(tmp_path):

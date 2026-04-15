@@ -1,5 +1,5 @@
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -148,7 +148,7 @@ def test_sort_progress_sse_stream(mock_sorter, client):
     assert "text/event-stream" in resp.headers["content-type"]
     # Parse first SSE event
     lines = resp.text.strip().split("\n")
-    data_line = [l for l in lines if l.startswith("data: ")][0]
+    data_line = [line for line in lines if line.startswith("data: ")][0]
     event_data = json.loads(data_line[6:])
     assert event_data["status"] == "complete"
     assert event_data["total_files"] == 10
