@@ -61,6 +61,17 @@ pip install -r requirements-build.txt
 
 The output is `dist\iCloudPhotoSorter\iCloudPhotoSorter.exe` — double-click to run.
 
+## Releasing
+
+Push a version tag to trigger a GitHub Release with the built `.zip` automatically:
+
+```powershell
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+No code changes required — the CI pipeline runs lint, tests, builds the exe, and publishes the release.
+
 ## Testing
 
 ```bash

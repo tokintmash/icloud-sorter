@@ -314,9 +314,10 @@ icloud-sorter/
 1. Licensing integration
 2. Cross-album duplicate handling option in Settings
 3. Website + purchase flow
-4. Desktop packaging (PyInstaller + pywebview)
-5. CI/CD for releases
+4. Desktop packaging (PyInstaller + pywebview) ✅
+5. CI/CD for releases ✅
 6. Code signing
+7. **Remove beta expiry** before v1.0 release — see `.planning/BETA_REMOVAL.md` for full checklist
 
 ## 11. Key Design Decisions
 

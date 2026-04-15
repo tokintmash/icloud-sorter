@@ -1,6 +1,6 @@
 # Phase 3C: CI/CD for Builds & Releases — Implementation Plan
 
-**Status:** Not started  
+**Status:** ✅ Complete  
 **Dependencies:** Phase 3B (complete)
 
 ---
@@ -195,15 +195,20 @@ push to main / PR                     push v* tag
 
 ## Acceptance Criteria
 
-- [ ] `.github/workflows/build.yml` exists with lint, test, build, and release jobs
-- [ ] Push to `master` triggers lint + test + frontend build + exe build
-- [ ] PR against `master` triggers lint + test + frontend build (no exe build)
-- [ ] Manual trigger via `workflow_dispatch` works from GitHub UI
-- [ ] Pushing a `v*` tag creates a GitHub Release with a downloadable `.zip` containing the exe
-- [ ] Python lint (`ruff`) passes with zero errors
-- [ ] TypeScript lint (`eslint`) passes with zero errors
-- [ ] Python tests (`pytest`) pass
-- [ ] Frontend tests (`vitest`) pass
-- [ ] Frontend build (`tsc + vite`) succeeds
-- [ ] PyInstaller produces `iCloudPhotoSorter.exe` on CI
-- [ ] All jobs use caching for pip and npm dependencies
+- [x] `.github/workflows/build.yml` exists with lint, test, build, and release jobs
+- [x] Push to `master` triggers lint + test + frontend build + exe build
+- [x] PR against `master` triggers lint + test + frontend build (no exe build)
+- [x] Manual trigger via `workflow_dispatch` works from GitHub UI
+- [x] Pushing a `v*` tag creates a GitHub Release with a downloadable `.zip` containing the exe
+- [x] Python lint (`ruff`) passes with zero errors
+- [x] TypeScript lint (`eslint`) passes with zero errors
+- [x] Python tests (`pytest`) pass
+- [x] Frontend tests (`vitest`) pass
+- [x] Frontend build (`tsc + vite`) succeeds
+- [x] PyInstaller produces `iCloudPhotoSorter.exe` on CI
+- [x] All jobs use caching for pip and npm dependencies
+- [x] Downloaded exe works without manual MOTW unblocking (MOTW stripped at startup)
+
+## Post-Debug Notes
+
+The CI-built exe initially failed with `Failed to resolve Python.Runtime.Loader.Initialize`. Root cause was **Mark-of-the-Web (MOTW)** — .NET Framework refuses to load assemblies marked as internet-downloaded. Fixed by adding `_strip_motw()` to `desktop_launcher.py` which removes `Zone.Identifier` ADS from bundled DLLs at startup. See `PHASE3C_CI_DEBUG.md` for full debug history.
