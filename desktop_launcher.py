@@ -18,6 +18,29 @@ if sys.stdout is None:
 if sys.stderr is None:
     sys.stderr = open(os.devnull, "w")
 
+
+def _strip_motw() -> None:
+    """Remove Mark-of-the-Web from bundled DLLs so .NET Framework loads them.
+
+    When users download a ZIP from the internet, Windows marks every
+    extracted file with a Zone.Identifier alternate data stream. .NET
+    Framework refuses to fully load assemblies with this mark, causing
+    'Failed to resolve' errors. Stripping the ADS before importing
+    pythonnet fixes this without requiring code signing.
+    """
+    if not getattr(sys, "frozen", False) or sys.platform != "win32":
+        return
+    internal = Path(sys._MEIPASS)
+    for dll in internal.rglob("*.dll"):
+        ads = str(dll) + ":Zone.Identifier"
+        try:
+            os.remove(ads)
+        except OSError:
+            pass
+
+
+_strip_motw()
+
 # Ensure project root on sys.path for dev runs
 _project_root = str(Path(__file__).resolve().parent)
 if _project_root not in sys.path:
