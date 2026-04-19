@@ -109,16 +109,19 @@ export default function SortProgress({
     ? Math.round((progress.completed_files / progress.total_files) * 100)
     : 0;
 
-  const barClass = progress.status === 'complete'
-    ? 'complete'
-    : progress.status === 'error'
-      ? 'error'
-      : '';
+  let barClass = '';
+  if (progress.status === 'complete') {
+    barClass = 'complete';
+  } else if (progress.status === 'error') {
+    barClass = 'error';
+  }
 
-  const statusLabel =
-    progress.status === 'sorting' ? 'Sorting...'
-    : progress.status === 'complete' ? 'Complete'
-    : 'Error';
+  let statusLabel = 'Error';
+  if (progress.status === 'sorting') {
+    statusLabel = 'Sorting...';
+  } else if (progress.status === 'complete') {
+    statusLabel = 'Complete';
+  }
 
   if (isTerminal) {
     return (

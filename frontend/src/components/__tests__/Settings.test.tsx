@@ -36,6 +36,16 @@ describe('Settings', () => {
     });
   });
 
+  it('exposes duplicate handling as an accessible radio group', async () => {
+    mockGetSettings.mockResolvedValue({ icloud_folder: '/photos/icloud', duplicate_handling: 'move_only' });
+
+    render(<Settings />);
+
+    expect(await screen.findByRole('group', { name: /cross-album duplicates/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/move to first album only/i)).toBeChecked();
+    expect(screen.getByLabelText(/copy to each album/i)).not.toBeChecked();
+  });
+
   it('saves updated value and shows success', async () => {
     mockGetSettings.mockResolvedValue({ icloud_folder: '/old', duplicate_handling: 'move_only' });
     mockUpdateSettings.mockResolvedValue({ icloud_folder: '/new', duplicate_handling: 'move_only' });
