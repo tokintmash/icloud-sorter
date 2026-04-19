@@ -36,9 +36,9 @@ def _detect_icloud_folder_registry() -> str | None:
                         return str(Path(value))
                 finally:
                     winreg.CloseKey(key)
-            except (OSError, FileNotFoundError):
+            except OSError:
                 continue
-    except (OSError, ImportError, FileNotFoundError):
+    except (OSError, ImportError):
         pass
     return None
 

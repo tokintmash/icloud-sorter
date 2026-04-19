@@ -3,8 +3,8 @@ import { getAlbums, ApiError } from '../hooks/useApi';
 import type { AlbumInfo } from '../types/api';
 
 interface AlbumPickerProps {
-  onSessionExpired: () => void;
-  onStartSort: (albumIds: string[]) => void;
+  readonly onSessionExpired: () => void;
+  readonly onStartSort: (albumIds: string[]) => void;
 }
 
 export default function AlbumPicker({ onSessionExpired, onStartSort }: AlbumPickerProps) {

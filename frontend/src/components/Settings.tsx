@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { getSettings, updateSettings, ApiError } from '../hooks/useApi';
 
 export default function Settings() {
+  const duplicateHandlingLegendId = 'duplicateHandlingLegend';
+  const moveOnlyLabelId = 'duplicateHandlingMoveOnlyLabel';
+  const copyToEachLabelId = 'duplicateHandlingCopyToEachLabel';
   const [icloudFolder, setIcloudFolder] = useState('');
   const [duplicateHandling, setDuplicateHandling] = useState<'move_only' | 'copy_to_each'>('move_only');
   const [loading, setLoading] = useState(true);
@@ -83,8 +86,8 @@ export default function Settings() {
             />
           </div>
           <div className="form-group">
-            <fieldset className="radio-group-fieldset">
-              <legend>Cross-Album Duplicates</legend>
+            <fieldset className="radio-group-fieldset" aria-labelledby={duplicateHandlingLegendId}>
+              <legend id={duplicateHandlingLegendId}>Cross-Album Duplicates</legend>
               <div className="radio-group">
                 <div className="radio-option">
                   <input
@@ -95,10 +98,15 @@ export default function Settings() {
                     checked={duplicateHandling === 'move_only'}
                     onChange={() => setDuplicateHandling('move_only')}
                     disabled={saving}
+                    aria-labelledby={`${moveOnlyLabelId} ${duplicateHandlingLegendId}`}
                     aria-describedby="duplicateHandlingMoveOnlyDescription"
                   />
                   <div>
-                    <label className="radio-label" htmlFor="duplicateHandlingMoveOnly">
+                    <label
+                      id={moveOnlyLabelId}
+                      className="radio-label"
+                      htmlFor="duplicateHandlingMoveOnly"
+                    >
                       <strong>Move to first album only</strong>
                     </label>
                     <p
@@ -119,10 +127,15 @@ export default function Settings() {
                     checked={duplicateHandling === 'copy_to_each'}
                     onChange={() => setDuplicateHandling('copy_to_each')}
                     disabled={saving}
+                    aria-labelledby={`${copyToEachLabelId} ${duplicateHandlingLegendId}`}
                     aria-describedby="duplicateHandlingCopyToEachDescription"
                   />
                   <div>
-                    <label className="radio-label" htmlFor="duplicateHandlingCopyToEach">
+                    <label
+                      id={copyToEachLabelId}
+                      className="radio-label"
+                      htmlFor="duplicateHandlingCopyToEach"
+                    >
                       <strong>Copy to each album</strong>
                     </label>
                     <p

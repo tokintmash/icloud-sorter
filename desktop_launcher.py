@@ -87,7 +87,7 @@ def _wait_for_ready() -> bool:
             resp = urllib.request.urlopen(HEALTH_URL, timeout=2)
             if resp.status == 200:
                 return True
-        except (urllib.error.URLError, OSError):
+        except urllib.error.URLError:
             pass
         time.sleep(0.25)
     return False
