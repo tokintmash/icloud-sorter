@@ -63,14 +63,18 @@ The output is `dist\iCloudPhotoSorter\iCloudPhotoSorter.exe` — double-click to
 
 ## Releasing
 
-Push a version tag to trigger a GitHub Release with the built `.zip` automatically:
+Push a version tag to trigger a GitHub Release in the public releases repo with the built `.zip` automatically:
 
 ```powershell
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-No code changes required — the CI pipeline runs lint, tests, builds the exe, and publishes the release.
+The CI pipeline runs lint, tests, builds the exe, and publishes the release artifact to `tokintmash/icloud-sorter-releases`.
+
+Before tagging, add this GitHub Actions secret in the source repo:
+
+- `PUBLIC_RELEASES_TOKEN`: fine-grained PAT with `Contents: Read and write` access to `tokintmash/icloud-sorter-releases`
 
 ## Testing
 

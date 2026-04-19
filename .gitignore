@@ -18,6 +18,7 @@ backend/_beta_stamp.py
 # App data
 *.db
 .tmp
+PUBLIC_RELEASES_TOKEN
 
 # IDE
 .vscode/
