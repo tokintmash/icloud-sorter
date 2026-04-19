@@ -83,39 +83,64 @@ export default function Settings() {
             />
           </div>
           <div className="form-group">
-            <label>Cross-Album Duplicates</label>
-            <div className="radio-group">
-              <label className="radio-label">
-                <input
-                  type="radio"
-                  name="duplicateHandling"
-                  value="move_only"
-                  checked={duplicateHandling === 'move_only'}
-                  onChange={() => setDuplicateHandling('move_only')}
-                  disabled={saving}
-                />
-                <div>
-                  <strong>Move to first album only</strong>
-                  <p className="radio-description">Each file is placed in one album folder. If a file belongs to multiple albums, it goes to the first one processed.</p>
+            <fieldset className="radio-group-fieldset">
+              <legend>Cross-Album Duplicates</legend>
+              <div className="radio-group">
+                <div className="radio-option">
+                  <input
+                    id="duplicateHandlingMoveOnly"
+                    type="radio"
+                    name="duplicateHandling"
+                    value="move_only"
+                    checked={duplicateHandling === 'move_only'}
+                    onChange={() => setDuplicateHandling('move_only')}
+                    disabled={saving}
+                    aria-describedby="duplicateHandlingMoveOnlyDescription"
+                  />
+                  <div>
+                    <label className="radio-label" htmlFor="duplicateHandlingMoveOnly">
+                      <strong>Move to first album only</strong>
+                    </label>
+                    <p
+                      id="duplicateHandlingMoveOnlyDescription"
+                      className="radio-description"
+                    >
+                      Each file is placed in one album folder. If a file belongs to
+                      multiple albums, it goes to the first one processed.
+                    </p>
+                  </div>
                 </div>
-              </label>
-              <label className="radio-label">
-                <input
-                  type="radio"
-                  name="duplicateHandling"
-                  value="copy_to_each"
-                  checked={duplicateHandling === 'copy_to_each'}
-                  onChange={() => setDuplicateHandling('copy_to_each')}
-                  disabled={saving}
-                />
-                <div>
-                  <strong>Copy to each album</strong>
-                  <p className="radio-description">Each file is copied into every album folder it belongs to. Uses more disk space.</p>
+                <div className="radio-option">
+                  <input
+                    id="duplicateHandlingCopyToEach"
+                    type="radio"
+                    name="duplicateHandling"
+                    value="copy_to_each"
+                    checked={duplicateHandling === 'copy_to_each'}
+                    onChange={() => setDuplicateHandling('copy_to_each')}
+                    disabled={saving}
+                    aria-describedby="duplicateHandlingCopyToEachDescription"
+                  />
+                  <div>
+                    <label className="radio-label" htmlFor="duplicateHandlingCopyToEach">
+                      <strong>Copy to each album</strong>
+                    </label>
+                    <p
+                      id="duplicateHandlingCopyToEachDescription"
+                      className="radio-description"
+                    >
+                      Each file is copied into every album folder it belongs to. Uses
+                      more disk space.
+                    </p>
+                  </div>
                 </div>
-              </label>
-            </div>
+              </div>
+            </fieldset>
             {duplicateHandling === 'copy_to_each' && (
-              <p className="warning-message">⚠️ This will use additional disk space. A file in 3 albums will result in 3 copies on disk.</p>
+              <p className="warning-message">
+                <strong>Warning:</strong> This will use additional disk space. A file in
+                3 albums will result in 3 copies on disk.
+              </p>
             )}
           </div>
           {error && <p className="error-message">{error}</p>}

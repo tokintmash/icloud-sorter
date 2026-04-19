@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -187,6 +187,64 @@ def test_sort_unauthenticated(mock_auth, tmp_db, sorter):
 def test_sort_invalid_icloud_folder(mock_settings, mock_auth, tmp_db, sorter):
     result = sorter.start(["a1"])
     assert result["error"] == "file_not_found"
+
+
+@patch("backend.services.sorter_service.icloud_service._is_authenticated", return_value=True)
+@patch(
+    "backend.services.sorter_service.load_settings",
+    return_value={"icloud_folder": "/tmp/icloud", "duplicate_handling": "move_only"},
+)
+@patch(
+    "backend.services.sorter_service.icloud_service.get_albums",
+    return_value=[{"id": "a1", "folder_name": "Album"}],
+)
+@patch("backend.services.sorter_service.icloud_service.sync_album_metadata", return_value=None)
+@patch("backend.services.sorter_service.state_service.reset_album_files")
+@patch(
+    "backend.services.sorter_service.state_service.get_pending_album_files",
+    return_value=[{"album_id": "a1", "album_name": "Album", "filename": "IMG_001.HEIC", "folder_name": "Album"}],
+)
+def test_sort_start_tracks_background_task(
+    mock_pending_rows,
+    mock_reset,
+    mock_sync,
+    mock_get_albums,
+    mock_settings,
+    mock_auth,
+    tmp_db,
+    sorter,
+):
+    task = MagicMock()
+
+    async def fake_sort_work():
+        return None
+
+    scheduled_coroutine = fake_sort_work()
+
+    with patch("backend.services.sorter_service.Path.is_dir", return_value=True), \
+         patch(
+             "backend.services.sorter_service.asyncio.to_thread",
+             new=MagicMock(return_value=scheduled_coroutine),
+         ) as mock_to_thread, \
+         patch("backend.services.sorter_service.asyncio.create_task", return_value=task) as mock_create_task:
+        result = sorter.start(["a1"])
+
+    assert result == {"total_files": 1}
+    assert sorter._background_task is task
+    mock_to_thread.assert_called_once_with(
+        sorter._run_sort,
+        mock_pending_rows.return_value,
+        "/tmp/icloud",
+        "move_only",
+    )
+    assert mock_create_task.call_args.args[0] is scheduled_coroutine
+    task.add_done_callback.assert_called_once()
+    scheduled_coroutine.close()
+
+    callback = task.add_done_callback.call_args.args[0]
+    callback(task)
+
+    assert sorter._background_task is None
 
 
 def test_file_index_updated_after_move(tmp_db, tmp_path, sorter):

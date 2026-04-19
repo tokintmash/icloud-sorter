@@ -5,6 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.app import app
+from backend.models.schemas import LoginRequest
 
 
 @pytest.fixture
@@ -13,12 +14,19 @@ def client():
         yield c
 
 
+def build_login_request(
+    apple_id: str = "test@apple.com",
+    secret_value: str = "example-pass",
+) -> dict[str, str]:
+    return LoginRequest(apple_id=apple_id, password=secret_value).model_dump()
+
+
 # --- Auth ---
 
 @patch("backend.routers.auth.icloud_service")
 def test_login_success(mock_svc, client):
     mock_svc.login.return_value = {"authenticated": True, "requires_2fa": False}
-    resp = client.post("/api/auth/login", json={"apple_id": "test@apple.com", "password": "pass"})
+    resp = client.post("/api/auth/login", json=build_login_request())
     assert resp.status_code == 200
     assert resp.json()["authenticated"] is True
 
@@ -26,7 +34,10 @@ def test_login_success(mock_svc, client):
 @patch("backend.routers.auth.icloud_service")
 def test_login_invalid_credentials(mock_svc, client):
     mock_svc.login.return_value = {"error": "invalid_credentials", "message": "Bad creds"}
-    resp = client.post("/api/auth/login", json={"apple_id": "bad", "password": "wrong"})
+    resp = client.post(
+        "/api/auth/login",
+        json=build_login_request("bad", "bad-pass"),
+    )
     assert resp.status_code == 401
     assert resp.json()["error"] == "invalid_credentials"
 
@@ -34,7 +45,10 @@ def test_login_invalid_credentials(mock_svc, client):
 @patch("backend.routers.auth.icloud_service")
 def test_login_requires_2fa(mock_svc, client):
     mock_svc.login.return_value = {"authenticated": False, "requires_2fa": True}
-    resp = client.post("/api/auth/login", json={"apple_id": "test@apple.com", "password": "pass"})
+    resp = client.post(
+        "/api/auth/login",
+        json=build_login_request(secret_value="two-factor-pass"),
+    )
     assert resp.status_code == 200
     assert resp.json()["requires_2fa"] is True
 

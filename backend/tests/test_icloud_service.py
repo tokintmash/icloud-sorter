@@ -14,6 +14,14 @@ from backend.services.icloud_service import (
 )
 
 
+class FilenameAccessError(RuntimeError):
+    """Raised by tests when mocking a pyicloud asset filename access failure."""
+
+
+def _raise_filename_access_error(message: str = "fail") -> str:
+    raise FilenameAccessError(message)
+
+
 # --- _sanitize_folder_name ---
 
 def test_sanitize_strips_invalid_chars():
@@ -73,8 +81,7 @@ def test_get_asset_filename_plain():
 
 def test_get_asset_filename_base64():
     asset = MagicMock()
-    asset.filename = property(lambda s: (_ for _ in ()).throw(Exception()))  # make .filename raise
-    type(asset).filename = property(lambda s: (_ for _ in ()).throw(Exception("fail")))
+    type(asset).filename = property(lambda s: _raise_filename_access_error())
     encoded = base64.b64encode(b"photo.jpg").decode()
     asset._master_record = {"fields": {"filenameEnc": {"value": encoded}}}
     result = _get_asset_filename(asset)
@@ -83,7 +90,7 @@ def test_get_asset_filename_base64():
 
 def test_get_asset_filename_plain_fallback():
     asset = MagicMock()
-    type(asset).filename = property(lambda s: (_ for _ in ()).throw(Exception("fail")))
+    type(asset).filename = property(lambda s: _raise_filename_access_error())
     # filenameEnc is plain text (not valid base64)
     asset._master_record = {"fields": {"filenameEnc": {"value": "plainfile.jpg"}}}
     result = _get_asset_filename(asset)
@@ -93,7 +100,7 @@ def test_get_asset_filename_plain_fallback():
 
 def test_get_asset_filename_returns_none_on_failure():
     asset = MagicMock()
-    type(asset).filename = property(lambda s: (_ for _ in ()).throw(Exception("fail")))
+    type(asset).filename = property(lambda s: _raise_filename_access_error())
     asset._master_record = {}
     result = _get_asset_filename(asset)
     assert result is None
@@ -370,7 +377,9 @@ def test_sync_album_metadata_handles_bad_asset(tmp_db):
 
     # Asset with no filename
     mock_asset = MagicMock()
-    type(mock_asset).filename = property(lambda s: (_ for _ in ()).throw(Exception("no filename")))
+    type(mock_asset).filename = property(
+        lambda s: _raise_filename_access_error("no filename")
+    )
     mock_asset._master_record = {}
 
     mock_album = MagicMock()

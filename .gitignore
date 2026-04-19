@@ -6,6 +6,10 @@ __pycache__/
 .env
 *.egg-info/
 
+# pytest
+.tmp-pytest*/
+.tmp-test/
+
 # Node
 node_modules/
 frontend/dist/

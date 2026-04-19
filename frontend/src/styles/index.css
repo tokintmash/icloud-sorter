@@ -335,16 +335,33 @@ button:disabled {
   gap: 10px;
 }
 
-.radio-label {
+.radio-group-fieldset {
+  border: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.radio-group-fieldset legend {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--color-text);
+}
+
+.radio-option {
   display: flex;
   align-items: flex-start;
   gap: 10px;
+}
+
+.radio-label {
+  display: inline-block;
   cursor: pointer;
   font-weight: normal;
   margin-bottom: 0;
 }
 
-.radio-label input[type='radio'] {
+.radio-option input[type='radio'] {
   margin-top: 3px;
   accent-color: var(--color-primary);
   flex-shrink: 0;
