@@ -20,29 +20,29 @@ import { startSort, ApiError } from '../../hooks/useApi';
 
 const mockStartSort = vi.mocked(startSort);
 
-let mockEventSource: {
-  onmessage: ((event: MessageEvent) => void) | null;
-  onerror: (() => void) | null;
-  close: ReturnType<typeof vi.fn>;
-};
-
 class MockEventSource {
+  static latest: MockEventSource | null = null;
+
   onmessage: ((event: MessageEvent) => void) | null = null;
   onerror: (() => void) | null = null;
   close = vi.fn();
+
   constructor() {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    mockEventSource = this;
+    MockEventSource.latest = this;
   }
+}
+
+function getMockEventSource(): MockEventSource {
+  if (!MockEventSource.latest) {
+    throw new Error('EventSource has not been initialized');
+  }
+
+  return MockEventSource.latest;
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockEventSource = {
-    onmessage: null,
-    onerror: null,
-    close: vi.fn(),
-  };
+  MockEventSource.latest = null;
   vi.stubGlobal('EventSource', MockEventSource);
 });
 
@@ -52,7 +52,7 @@ afterEach(() => {
 
 function sendSSEEvent(data: SortProgressEvent) {
   act(() => {
-    mockEventSource.onmessage?.({ data: JSON.stringify(data) } as MessageEvent);
+    getMockEventSource().onmessage?.({ data: JSON.stringify(data) } as MessageEvent);
   });
 }
 
