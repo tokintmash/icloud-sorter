@@ -77,6 +77,22 @@ Initial visibility rules:
 - It is included in the post-purchase email copy
 - If you later add free trials, the same endpoint can become public without restructuring the site
 
+### Beta and release distribution options
+
+Immediate demo/beta path:
+- Use a separate public GitHub releases repo as the first public download surface
+- Keep the main product repo private
+- Publish packaged beta builds from CI into the public releases repo
+- Point the WordPress site's demo download button to either the public release asset directly or to the site's managed `/download/` redirect
+- This path is optimized for getting a beta and landing page online quickly
+
+Deferred later-phase options:
+- GitHub Action publishes release assets to the public releases repo and WordPress only stores page content and links
+- GitHub Action updates WordPress release metadata through the WordPress REST API so the site can show latest version and version history automatically
+- GitHub Action uploads binaries directly to the web host over SFTP/SSH and WordPress links to host-local files
+- WordPress stores release entries only, while binaries remain hosted in a separate public location
+- A small WordPress plugin or custom post type can be added later to manage release history, latest-version badges, and download CTA rendering
+
 ### Messaging and content direction
 
 Position the app as:
@@ -113,6 +129,13 @@ Operational data to manage centrally in WordPress:
 - `current_version`
 - optional `launch_enabled` flag to switch public CTA from "Join waitlist / Coming soon" to "Buy Now"
 
+Optional later-phase release metadata in WordPress:
+- `latest_version`
+- `latest_download_url`
+- `release_notes_excerpt`
+- `release_published_at`
+- optional release archive entries for a public version history page
+
 ## Test Plan
 
 Validate these scenarios before launch:
@@ -125,6 +148,12 @@ Validate these scenarios before launch:
 - Mobile layout works for hero, screenshots, FAQ, and checkout CTA sections
 - Broken or disabled `launch_enabled` state hides purchase CTAs and shows a waitlist/coming-soon CTA instead
 
+Validate these scenarios in the later release-automation phase:
+- GitHub release publication updates the public beta/download target without manual file uploads
+- The WordPress site can show the latest version at the top if release metadata automation is added
+- Version history ordering remains newest-first after repeated releases
+- Demo/beta links continue working even if the website content is updated separately from releases
+
 ## Assumptions
 
 - WordPress is the CMS, not the checkout engine
@@ -132,3 +161,5 @@ Validate these scenarios before launch:
 - First paid version delivers access via download link and email, not license activation
 - Packaging must be completed before enabling purchase
 - Licensing, keys, and in-app activation remain a later phase and should not block the website launch
+- The first public demo/beta will use a separate public GitHub releases repo unless a better hosting target is chosen later
+- The exact later-phase release automation method for WordPress remains intentionally undecided
