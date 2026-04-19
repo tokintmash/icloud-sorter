@@ -216,8 +216,16 @@ def test_sort_start_tracks_background_task(
 ):
     task = MagicMock()
 
+    async def fake_sort_work():
+        return None
+
+    scheduled_coroutine = fake_sort_work()
+
     with patch("backend.services.sorter_service.Path.is_dir", return_value=True), \
-         patch("backend.services.sorter_service.asyncio.to_thread", return_value="sort-work") as mock_to_thread, \
+         patch(
+             "backend.services.sorter_service.asyncio.to_thread",
+             new=MagicMock(return_value=scheduled_coroutine),
+         ) as mock_to_thread, \
          patch("backend.services.sorter_service.asyncio.create_task", return_value=task) as mock_create_task:
         result = sorter.start(["a1"])
 
@@ -229,8 +237,9 @@ def test_sort_start_tracks_background_task(
         "/tmp/icloud",
         "move_only",
     )
-    mock_create_task.assert_called_once_with("sort-work")
+    assert mock_create_task.call_args.args[0] is scheduled_coroutine
     task.add_done_callback.assert_called_once()
+    scheduled_coroutine.close()
 
     callback = task.add_done_callback.call_args.args[0]
     callback(task)
