@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { login, submit2fa, ApiError } from '../hooks/useApi';
 
 interface AuthScreenProps {
-  onAuthenticated: () => void;
-  initialMode: 'login' | '2fa';
+  readonly onAuthenticated: () => void;
+  readonly initialMode: 'login' | '2fa';
 }
 
 export default function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {

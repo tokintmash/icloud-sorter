@@ -2,12 +2,24 @@ import asyncio
 import logging
 import os
 import shutil
+from dataclasses import dataclass
 from pathlib import Path
 
 from backend.services import state_service, icloud_service
 from backend.config import load_settings
 
 logger = logging.getLogger(__name__)
+
+
+SortRow = dict[str, str]
+
+
+@dataclass
+class SortRunContext:
+    root: Path
+    folder_map: dict[str, str]
+    file_index: dict[str, list[Path]]
+    claimed: set[Path]
 
 
 class SorterService:
@@ -53,7 +65,10 @@ class SorterService:
 
         self._reset_progress(len(rows))
         duplicate_handling = settings.get("duplicate_handling", "move_only")
-        self._background_task = self._schedule_sort(rows, icloud_folder, duplicate_handling)
+        self._background_task = asyncio.create_task(
+            asyncio.to_thread(self._run_sort, rows, icloud_folder, duplicate_handling)
+        )
+        self._background_task.add_done_callback(self._clear_background_task)
         return {"total_files": len(rows)}
 
     def _reset_progress(self, total_files: int) -> None:
@@ -66,23 +81,11 @@ class SorterService:
         self._current_album = ""
         self._errors = []
 
-    def _schedule_sort(
-        self,
-        rows: list[dict[str, str]],
-        icloud_folder: str,
-        duplicate_handling: str,
-    ) -> asyncio.Task[None]:
-        task = asyncio.create_task(
-            asyncio.to_thread(self._run_sort, rows, icloud_folder, duplicate_handling)
-        )
-        task.add_done_callback(self._clear_background_task)
-        return task
-
     def _clear_background_task(self, task: asyncio.Task[None]) -> None:
         if self._background_task is task:
             self._background_task = None
 
-    def _build_folder_map(self, rows: list[dict[str, str]]) -> dict[str, str]:
+    def _build_folder_map(self, rows: list[SortRow]) -> dict[str, str]:
         folder_map: dict[str, str] = {}
         for row in rows:
             folder_name = row.get("folder_name")
@@ -242,7 +245,7 @@ class SorterService:
 
     def _handle_candidate(
         self,
-        row: dict[str, str],
+        row: SortRow,
         candidates: list[Path],
         target_dir: Path,
         claimed: set[Path],
@@ -263,13 +266,66 @@ class SorterService:
             file_index,
         )
 
+    def _prepare_run_context(
+        self,
+        rows: list[SortRow],
+        icloud_folder: str,
+    ) -> SortRunContext:
+        root = Path(icloud_folder)
+        return SortRunContext(
+            root=root,
+            folder_map=self._build_folder_map(rows),
+            file_index=self._build_file_index(root),
+            claimed=set(),
+        )
+
+    def _find_candidates(
+        self,
+        filename: str,
+        file_index: dict[str, list[Path]],
+    ) -> list[Path]:
+        return file_index.get(filename.casefold(), [])
+
+    def _record_missing_file_if_needed(
+        self,
+        album_id: str,
+        album_name: str,
+        filename: str,
+        candidates: list[Path],
+    ) -> bool:
+        if candidates:
+            return False
+
+        self._record_failure(album_id, album_name, filename, "File not found")
+        return True
+
+    def _record_permission_failure(
+        self,
+        album_id: str,
+        album_name: str,
+        filename: str,
+        error: PermissionError,
+    ) -> None:
+        self._record_failure(
+            album_id,
+            album_name,
+            filename,
+            f"Permission denied: {error}",
+        )
+
+    def _record_os_failure(
+        self,
+        album_id: str,
+        album_name: str,
+        filename: str,
+        error: OSError,
+    ) -> None:
+        self._record_failure(album_id, album_name, filename, f"OS error: {error}")
+
     def _process_row(
         self,
-        row: dict[str, str],
-        root: Path,
-        folder_map: dict[str, str],
-        file_index: dict[str, list[Path]],
-        claimed: set[Path],
+        row: SortRow,
+        context: SortRunContext,
         duplicate_handling: str,
     ) -> None:
         album_id = row["album_id"]
@@ -277,14 +333,22 @@ class SorterService:
         filename = row["filename"]
         self._set_current_item(filename, album_name)
 
-        target_dir = self._target_dir(root, album_id, album_name, folder_map)
+        target_dir = self._target_dir(
+            context.root,
+            album_id,
+            album_name,
+            context.folder_map,
+        )
 
         try:
             target_dir.mkdir(parents=True, exist_ok=True)
-            candidates = file_index.get(filename.casefold(), [])
-
-            if not candidates:
-                self._record_failure(album_id, album_name, filename, "File not found")
+            candidates = self._find_candidates(filename, context.file_index)
+            if self._record_missing_file_if_needed(
+                album_id,
+                album_name,
+                filename,
+                candidates,
+            ):
                 return
 
             if self._claim_existing_target(
@@ -292,7 +356,7 @@ class SorterService:
                 filename,
                 candidates,
                 target_dir,
-                claimed,
+                context.claimed,
                 duplicate_handling,
             ):
                 return
@@ -301,46 +365,48 @@ class SorterService:
                 row,
                 candidates,
                 target_dir,
-                claimed,
+                context.claimed,
                 duplicate_handling,
-                file_index,
+                context.file_index,
             ):
                 return
 
             self._record_sorted(album_id, filename)
 
         except PermissionError as error:
-            self._record_failure(
-                album_id,
-                album_name,
-                filename,
-                f"Permission denied: {error}",
-            )
+            self._record_permission_failure(album_id, album_name, filename, error)
         except OSError as error:
-            self._record_failure(album_id, album_name, filename, f"OS error: {error}")
+            self._record_os_failure(album_id, album_name, filename, error)
 
-    def _run_sort(self, rows: list[dict[str, str]], icloud_folder: str, duplicate_handling: str = "move_only") -> None:
+    def _process_rows(
+        self,
+        rows: list[SortRow],
+        context: SortRunContext,
+        duplicate_handling: str,
+    ) -> None:
+        for row in rows:
+            self._process_row(row, context, duplicate_handling)
+
+    def _mark_sort_complete(self) -> None:
+        self._status = "complete"
+
+    def _record_fatal_sort_error(self, error: Exception) -> None:
+        logger.exception("Fatal error during sort")
+        self._status = "error"
+        self._errors.append({"filename": "", "error": f"Fatal error: {error}", "album": ""})
+
+    def _run_sort(
+        self,
+        rows: list[SortRow],
+        icloud_folder: str,
+        duplicate_handling: str = "move_only",
+    ) -> None:
         try:
-            root = Path(icloud_folder)
-            folder_map = self._build_folder_map(rows)
-            file_index = self._build_file_index(root)
-            claimed: set[Path] = set()
-
-            for row in rows:
-                self._process_row(
-                    row,
-                    root,
-                    folder_map,
-                    file_index,
-                    claimed,
-                    duplicate_handling,
-                )
-
-            self._status = "complete"
+            context = self._prepare_run_context(rows, icloud_folder)
+            self._process_rows(rows, context, duplicate_handling)
+            self._mark_sort_complete()
         except Exception as error:
-            logger.exception("Fatal error during sort")
-            self._status = "error"
-            self._errors.append({"filename": "", "error": f"Fatal error: {error}", "album": ""})
+            self._record_fatal_sort_error(error)
         finally:
             self._running = False
 

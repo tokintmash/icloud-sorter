@@ -22,6 +22,12 @@ def _raise_filename_access_error(message: str = "fail") -> str:
     raise FilenameAccessError(message)
 
 
+def _raise_api_response_exception(message: str = "fail") -> None:
+    from pyicloud.exceptions import PyiCloudAPIResponseException
+
+    raise PyiCloudAPIResponseException(message)
+
+
 # --- _sanitize_folder_name ---
 
 def test_sanitize_strips_invalid_chars():
@@ -289,13 +295,11 @@ def test_get_albums_success():
 
 def test_get_albums_api_error():
     import backend.services.icloud_service as svc
-    from pyicloud.exceptions import PyiCloudAPIResponseException
     orig_icloud = svc._icloud
     orig_2fa = svc._requires_2fa
 
     mock_icloud = MagicMock()
-    mock_icloud.photos = property(lambda s: (_ for _ in ()).throw(PyiCloudAPIResponseException("fail")))
-    type(mock_icloud).photos = property(lambda s: (_ for _ in ()).throw(PyiCloudAPIResponseException("fail")))
+    type(mock_icloud).photos = property(lambda s: _raise_api_response_exception())
 
     svc._icloud = mock_icloud
     svc._requires_2fa = False

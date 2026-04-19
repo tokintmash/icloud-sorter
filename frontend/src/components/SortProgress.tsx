@@ -3,9 +3,49 @@ import { startSort, ApiError } from '../hooks/useApi';
 import type { SortProgressEvent } from '../types/api';
 
 interface SortProgressProps {
-  albumIds: string[];
-  onComplete: () => void;
-  onSessionExpired: () => void;
+  readonly albumIds: string[];
+  readonly onComplete: () => void;
+  readonly onSessionExpired: () => void;
+}
+
+function getProgressPercentage(progress: SortProgressEvent): number {
+  if (progress.total_files <= 0) {
+    return 0;
+  }
+
+  return Math.round((progress.completed_files / progress.total_files) * 100);
+}
+
+function getProgressBarClass(status: SortProgressEvent['status']): string {
+  if (status === 'complete') {
+    return 'complete';
+  }
+
+  if (status === 'error') {
+    return 'error';
+  }
+
+  return '';
+}
+
+function getStatusLabel(status: SortProgressEvent['status']): string {
+  if (status === 'sorting') {
+    return 'Sorting...';
+  }
+
+  if (status === 'complete') {
+    return 'Complete';
+  }
+
+  return 'Error';
+}
+
+function getCompletionHeading(status: SortProgressEvent['status']): string {
+  if (status === 'complete') {
+    return 'Sorting Complete!';
+  }
+
+  return 'Sort Error';
 }
 
 export default function SortProgress({
@@ -105,23 +145,9 @@ export default function SortProgress({
   }
 
   const isTerminal = progress.status === 'complete' || progress.status === 'error';
-  const percentage = progress.total_files > 0
-    ? Math.round((progress.completed_files / progress.total_files) * 100)
-    : 0;
-
-  let barClass = '';
-  if (progress.status === 'complete') {
-    barClass = 'complete';
-  } else if (progress.status === 'error') {
-    barClass = 'error';
-  }
-
-  let statusLabel = 'Error';
-  if (progress.status === 'sorting') {
-    statusLabel = 'Sorting...';
-  } else if (progress.status === 'complete') {
-    statusLabel = 'Complete';
-  }
+  const percentage = getProgressPercentage(progress);
+  const barClass = getProgressBarClass(progress.status);
+  const statusLabel = getStatusLabel(progress.status);
 
   if (isTerminal) {
     return (
@@ -134,7 +160,7 @@ export default function SortProgress({
           />
         </div>
         <div className="sort-summary">
-          <h3>{progress.status === 'complete' ? 'Sorting Complete!' : 'Sort Error'}</h3>
+          <h3>{getCompletionHeading(progress.status)}</h3>
           <p>
             {progress.completed_files} files sorted
             {progress.failed_files > 0 && `, ${progress.failed_files} failed`}
@@ -158,6 +184,7 @@ export default function SortProgress({
   }
 
   const visibleErrors = showAllErrors ? progress.errors : progress.errors.slice(0, 5);
+  const errorToggleLabel = showAllErrors ? 'Show fewer' : `Show all ${progress.errors.length} errors`;
 
   return (
     <div className="sort-progress">
@@ -202,7 +229,7 @@ export default function SortProgress({
               style={{ marginTop: '8px', fontSize: '13px' }}
               onClick={() => setShowAllErrors((v) => !v)}
             >
-              {showAllErrors ? 'Show fewer' : `Show all ${progress.errors.length} errors`}
+              {errorToggleLabel}
             </button>
           )}
         </div>
