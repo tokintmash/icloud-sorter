@@ -33,3 +33,4 @@ PUBLIC_RELEASES_TOKEN
 # OS
 .DS_Store
 Thumbs.db
+sonar-issues.json

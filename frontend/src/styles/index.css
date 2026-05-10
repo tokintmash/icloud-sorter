@@ -154,6 +154,58 @@ main {
   margin-bottom: 20px;
 }
 
+/* Consent screen */
+.consent-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+}
+
+.consent-card {
+  width: 100%;
+  max-width: 620px;
+}
+
+.consent-eyebrow {
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.consent-card h2 {
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.consent-intro {
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  margin-bottom: 20px;
+}
+
+.consent-section {
+  border-top: 1px solid var(--color-border);
+  padding: 14px 0;
+}
+
+.consent-section h3 {
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.consent-section p {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.consent-card button {
+  margin-top: 10px;
+}
+
 /* Forms */
 .form-group {
   margin-bottom: 16px;
