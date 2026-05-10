@@ -31,7 +31,7 @@ const mockGetSettings = vi.mocked(getSettings);
 
 beforeEach(() => {
   vi.clearAllMocks();
-  window.localStorage.clear();
+  globalThis.localStorage.clear();
   mockGetBetaStatus.mockResolvedValue({
     is_beta: false,
     expired: false,
@@ -58,7 +58,7 @@ describe('App', () => {
   });
 
   it('shows AuthScreen when unauthenticated with accepted local consent', async () => {
-    window.localStorage.setItem(DATA_ACCESS_CONSENT_STORAGE_KEY, 'accepted');
+    globalThis.localStorage.setItem(DATA_ACCESS_CONSENT_STORAGE_KEY, 'accepted');
     mockGetSession.mockResolvedValue({ authenticated: false, apple_id: null, requires_2fa: false });
     render(<App />);
 
@@ -75,7 +75,7 @@ describe('App', () => {
 
     await user.click(await screen.findByRole('button', { name: /i understand and agree/i }));
 
-    expect(window.localStorage.getItem(DATA_ACCESS_CONSENT_STORAGE_KEY)).toBe('accepted');
+    expect(globalThis.localStorage.getItem(DATA_ACCESS_CONSENT_STORAGE_KEY)).toBe('accepted');
     expect(screen.getByText(/sign in with apple id/i)).toBeInTheDocument();
   });
 

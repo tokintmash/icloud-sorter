@@ -14,7 +14,7 @@ export const DATA_ACCESS_CONSENT_STORAGE_KEY = 'icloud-sorter:data-access-consen
 
 function hasAcceptedCurrentConsent() {
   try {
-    return window.localStorage.getItem(DATA_ACCESS_CONSENT_STORAGE_KEY) === 'accepted';
+    return globalThis.localStorage.getItem(DATA_ACCESS_CONSENT_STORAGE_KEY) === 'accepted';
   } catch {
     return false;
   }
@@ -67,7 +67,7 @@ export default function App() {
 
   function handleAcceptConsent() {
     try {
-      window.localStorage.setItem(DATA_ACCESS_CONSENT_STORAGE_KEY, 'accepted');
+      globalThis.localStorage.setItem(DATA_ACCESS_CONSENT_STORAGE_KEY, 'accepted');
     } catch {
       // Continue to login if browser storage is unavailable.
     }

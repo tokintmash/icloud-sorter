@@ -15,3 +15,8 @@
 - [x] 3.1 Verify a new unauthenticated browser state shows consent before login.
 - [x] 3.2 Verify accepted consent is remembered locally and login appears directly on a later unauthenticated app load.
 - [x] 3.3 Run `cd frontend && npm run build` and fix any TypeScript or build errors.
+
+## 4. Sonar Follow-up
+
+- [x] 4.1 Replace consent-flow `window.localStorage` references in `frontend/src/App.tsx` and `frontend/src/App.test.tsx` with `globalThis.localStorage` to resolve Sonar `typescript:S7764` findings introduced by this change.
+- [x] 4.2 Re-run frontend verification after the Sonar cleanup.
