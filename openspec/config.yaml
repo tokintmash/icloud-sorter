@@ -1,13 +1,19 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Product: iCloud Photo Sorter for Windows.
+
+  Purpose: read iCloud Photos album metadata via pyicloud, match it to files already synced locally by iCloud for Windows, and organize those local files into album-named folders. The app does not download photo/video binaries from iCloud as part of sorting.
+
+  Architecture: FastAPI backend, React + TypeScript + Vite frontend, SQLite state via stdlib sqlite3, Server-Sent Events for sort progress, no external UI framework.
+
+  Backend constraints: pyicloud is called in-process, async FastAPI endpoints may offload sync work with asyncio/thread executors, app.py must work with both python app.py and uvicorn backend.app:app, frontend/dist is served as the SPA build, and localhost:5173 is allowed for Vite dev CORS.
+
+  Frontend constraints: API calls use /api/*, Vite proxies to the backend in dev, TypeScript types must match backend Pydantic schemas, and the main flow is authentication -> album selection -> sort progress, with settings accessible separately.
+
+  State: ~/.icloud-sorter/state.db stores one album_files table with album_id, album_name, filename, folder_name, status, and error. Settings are app-level configuration outside the album_files table.
+
+  Planning: .planning/PLANNING_SORTER_v2.md is the legacy product blueprint. OpenSpec specs should now capture accepted behavior for future changes; planning files remain useful historical/background context.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
