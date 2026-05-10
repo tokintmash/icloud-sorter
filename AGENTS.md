@@ -4,9 +4,11 @@
 
 This app reads iCloud album metadata via `pyicloud`, matches it to files already synced locally by iCloud for Windows, and moves them into album-named folders. **No downloading** — files are reorganized in place.
 
-**Source of truth:** `.planning/PLANNING_SORTER_v2.md`
+**Source of truth:** OpenSpec specs in `openspec/specs/`, plus current code for implementation reality.
 
-**Current status:** Phase 1 (backend) ✅ complete. Phase 2 (frontend) is next — see `.planning/PLANNING_SORTER_v2.md` §10 Phase 2.
+**Roadmap:** Future/non-accepted direction lives in `openspec/roadmap.md`. Historical planning notes remain in `.planning/` for reference only.
+
+**OpenSpec model:** Accepted behavior is in `openspec/specs/`; active proposed work is in `openspec/changes/`; future candidates are in `openspec/roadmap.md`.
 
 ---
 
@@ -76,7 +78,7 @@ Error codes: `invalid_credentials`, `2fa_required`, `2fa_failed`, `session_expir
 ### Settings Endpoints
 
 **`GET /api/settings`**
-- Response: `{ "icloud_folder": string }`
+- Response: `{ "icloud_folder": string, "duplicate_handling": "move_only" | "copy_to_each" }`
 
 **`PUT /api/settings`**
 - Partial updates allowed
@@ -135,7 +137,7 @@ CREATE INDEX IF NOT EXISTS idx_album_files_album ON album_files(album_id);
 - Files are **moved** (not copied) within the iCloud Photos folder — instant on same drive
 - Album → folder name sanitization: replace `/ \ : * ? " < > |` with `_`, trim whitespace/dots, truncate to 200 chars, `"Unnamed Album"` if empty
 - Filename collision in target folder: append sequence number `IMG_0001 (2).HEIC`
-- Cross-album duplicates (MVP): move to first album, skip in subsequent
+- Cross-album duplicates are controlled by `duplicate_handling`: `move_only` moves once to the first processed album; `copy_to_each` makes each selected album folder self-contained
 - Case-insensitive filename matching (Windows NTFS)
 - Files not found locally: mark as `failed` with error, continue with next
 
@@ -145,22 +147,17 @@ CREATE INDEX IF NOT EXISTS idx_album_files_album ON album_files(album_id);
 
 **Scope:** Everything under `frontend/`
 
-**Current state (pre-Phase 2):** Frontend still has old download-based components and types. Phase 2 must rewrite these to match the new sorter backend.
+**Authoritative frontend behavior:** See `openspec/specs/frontend-flow/spec.md` and the current frontend code.
 
-**Existing files (to be rewritten in Phase 2):**
+**Key files:**
 - `frontend/src/App.tsx` — root, auth state machine, screen routing
-- `frontend/src/components/AuthScreen.tsx` — Apple ID login + 2FA *(keep, adapt)*
-- `frontend/src/components/AlbumBrowser.tsx` — old download-oriented album browser *(rewrite → `AlbumPicker.tsx`)*
-- `frontend/src/components/DownloadProgress.tsx` — old download progress *(rewrite → `SortProgress.tsx`)*
-- `frontend/src/components/Settings.tsx` — old download settings *(rewrite for `icloud_folder` only)*
-- `frontend/src/hooks/useApi.ts` — `apiFetch<T>()` + typed endpoint functions *(update endpoints)*
-- `frontend/src/types/api.ts` — **still has old download types** *(rewrite to match backend `schemas.py`)*
-- `frontend/src/styles/index.css` — CSS design system
-
-**Target files (after Phase 2):**
+- `frontend/src/components/AuthScreen.tsx` — Apple ID login + 2FA
 - `frontend/src/components/AlbumPicker.tsx` — album list with checkboxes, counts, sort button
 - `frontend/src/components/SortProgress.tsx` — progress bar, current file, errors, completion
-- `frontend/src/components/Settings.tsx` — iCloud folder path config only
+- `frontend/src/components/Settings.tsx` — iCloud folder path and duplicate handling settings
+- `frontend/src/hooks/useApi.ts` — `apiFetch<T>()` + typed endpoint functions
+- `frontend/src/types/api.ts` — frontend API types matching backend `schemas.py`
+- `frontend/src/styles/index.css` — CSS design system
 
 **Key constraints:**
 - React + TypeScript + Vite
@@ -215,9 +212,10 @@ Not needed for the sorter (we don't download files), but noted for reference: `a
 ## Conventions
 
 - **No placeholders or TODO stubs** — every file must contain working code
-- **`.planning/PLANNING_SORTER_v2.md`** is the source of truth
+- **OpenSpec specs are the source of truth** for accepted behavior; do not treat `.planning/` as authoritative unless the user explicitly asks for historical context
+- **OpenSpec roadmap captures future intent**; promote roadmap items to `openspec/changes/<name>/` before implementation
 - **Python:** 3.10+, type hints, f-strings, `asyncio`
 - **TypeScript:** strict mode, no `any` types
-- **No licensing in MVP** — deferred to post-MVP
+- **Licensing is future roadmap work** unless an active OpenSpec change says otherwise
 - **Always run tests at the end of a phase** — run `.\venv\Scripts\python.exe -m pytest` (backend) and `cd frontend && npm run build` (frontend) before marking a phase complete. Fix any failures before proceeding.
 - **Add tests for new logic** — when implementing new features or changing behavior, add or update tests to cover the new code paths.
