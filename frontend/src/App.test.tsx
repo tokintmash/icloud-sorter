@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import App from './App';
+import App, { DATA_ACCESS_CONSENT_STORAGE_KEY } from './App';
 
 vi.mock('./hooks/useApi', () => ({
   getSession: vi.fn(),
+  getBetaStatus: vi.fn(),
   login: vi.fn(),
   submit2fa: vi.fn(),
   getAlbums: vi.fn(),
@@ -21,14 +22,22 @@ vi.mock('./hooks/useApi', () => ({
   },
 }));
 
-import { getSession, getAlbums, getSettings } from './hooks/useApi';
+import { getSession, getBetaStatus, getAlbums, getSettings } from './hooks/useApi';
 
 const mockGetSession = vi.mocked(getSession);
+const mockGetBetaStatus = vi.mocked(getBetaStatus);
 const mockGetAlbums = vi.mocked(getAlbums);
 const mockGetSettings = vi.mocked(getSettings);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  window.localStorage.clear();
+  mockGetBetaStatus.mockResolvedValue({
+    is_beta: false,
+    expired: false,
+    expires_on: null,
+    days_remaining: null,
+  });
 });
 
 describe('App', () => {
@@ -38,13 +47,54 @@ describe('App', () => {
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
   });
 
-  it('shows AuthScreen when unauthenticated', async () => {
+  it('shows consent before AuthScreen when unauthenticated without local consent', async () => {
+    mockGetSession.mockResolvedValue({ authenticated: false, apple_id: null, requires_2fa: false });
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/review data access/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/sign in with apple id/i)).not.toBeInTheDocument();
+  });
+
+  it('shows AuthScreen when unauthenticated with accepted local consent', async () => {
+    window.localStorage.setItem(DATA_ACCESS_CONSENT_STORAGE_KEY, 'accepted');
     mockGetSession.mockResolvedValue({ authenticated: false, apple_id: null, requires_2fa: false });
     render(<App />);
 
     await waitFor(() => {
       expect(screen.getByText(/sign in with apple id/i)).toBeInTheDocument();
     });
+  });
+
+  it('remembers accepted consent and continues to AuthScreen', async () => {
+    mockGetSession.mockResolvedValue({ authenticated: false, apple_id: null, requires_2fa: false });
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: /i understand and agree/i }));
+
+    expect(window.localStorage.getItem(DATA_ACCESS_CONSENT_STORAGE_KEY)).toBe('accepted');
+    expect(screen.getByText(/sign in with apple id/i)).toBeInTheDocument();
+  });
+
+  it('shows beta expired before consent or AuthScreen', async () => {
+    mockGetBetaStatus.mockResolvedValue({
+      is_beta: true,
+      expired: true,
+      expires_on: '2026-01-01',
+      days_remaining: 0,
+    });
+    mockGetSession.mockResolvedValue({ authenticated: false, apple_id: null, requires_2fa: false });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/beta expired/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/review data access/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/sign in with apple id/i)).not.toBeInTheDocument();
   });
 
   it('shows nav and AlbumPicker when authenticated', async () => {

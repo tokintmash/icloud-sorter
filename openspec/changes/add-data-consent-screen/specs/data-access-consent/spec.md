@@ -32,9 +32,9 @@ The system SHALL explain how Apple ID credentials are used for authentication.
 
 #### Scenario: User reviews credential handling
 - **WHEN** the consent screen is displayed
-- **THEN** the screen states that Apple ID credentials are used to sign in with Apple/iCloud
+- **THEN** the screen states that Apple ID credentials are submitted to the app's local backend login flow
+- **THEN** the screen states that Apple ID credentials are used only to sign in with Apple/iCloud through the app's iCloud authentication service
 - **THEN** the screen states that the app does not store the Apple ID password
-- **THEN** the screen states that authentication is handled through the iCloud authentication library used by the app
 
 ### Requirement: Previously accepted consent is remembered locally
 The system SHALL remember acceptance of the current consent version in local browser storage.

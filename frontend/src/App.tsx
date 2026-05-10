@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getSession, getBetaStatus } from './hooks/useApi';
 import type { BetaStatusResponse } from './types/api';
 import AuthScreen from './components/AuthScreen';
+import ConsentScreen from './components/ConsentScreen';
 import AlbumPicker from './components/AlbumPicker';
 import SortProgress from './components/SortProgress';
 import Settings from './components/Settings';
@@ -9,15 +10,28 @@ import Settings from './components/Settings';
 type AuthState = 'loading' | 'unauthenticated' | 'awaiting_2fa' | 'authenticated';
 type Tab = 'albums' | 'sorting' | 'settings';
 
+export const DATA_ACCESS_CONSENT_STORAGE_KEY = 'icloud-sorter:data-access-consent:v1';
+
+function hasAcceptedCurrentConsent() {
+  try {
+    return window.localStorage.getItem(DATA_ACCESS_CONSENT_STORAGE_KEY) === 'accepted';
+  } catch {
+    return false;
+  }
+}
+
 export default function App() {
   const [authState, setAuthState] = useState<AuthState>('loading');
   const [appleId, setAppleId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('albums');
   const [sortState, setSortState] = useState<{ albumIds: string[] } | null>(null);
   const [betaStatus, setBetaStatus] = useState<BetaStatusResponse | null>(null); // BETA: remove for v1.0
+  const [hasAcceptedConsent, setHasAcceptedConsent] = useState(false);
 
   useEffect(() => {
     async function init() {
+      setHasAcceptedConsent(hasAcceptedCurrentConsent());
+
       // Check beta status first
       try {
         const beta = await getBetaStatus();
@@ -49,6 +63,15 @@ export default function App() {
     getSession()
       .then((s) => setAppleId(s.apple_id))
       .catch(() => {});
+  }
+
+  function handleAcceptConsent() {
+    try {
+      window.localStorage.setItem(DATA_ACCESS_CONSENT_STORAGE_KEY, 'accepted');
+    } catch {
+      // Continue to login if browser storage is unavailable.
+    }
+    setHasAcceptedConsent(true);
   }
 
   function handleSessionExpired() {
@@ -109,10 +132,14 @@ export default function App() {
         </header>
         {betaBanner}
         <main>
-          <AuthScreen
-            onAuthenticated={handleAuthenticated}
-            initialMode={authState === 'awaiting_2fa' ? '2fa' : 'login'}
-          />
+          {authState === 'unauthenticated' && !hasAcceptedConsent ? (
+            <ConsentScreen onAccept={handleAcceptConsent} />
+          ) : (
+            <AuthScreen
+              onAuthenticated={handleAuthenticated}
+              initialMode={authState === 'awaiting_2fa' ? '2fa' : 'login'}
+            />
+          )}
         </main>
       </div>
     );

@@ -8,7 +8,7 @@ The frontend currently initializes beta status and session state in `App.tsx`, t
 - Show a consent screen before the login form for first-time use on a device/browser.
 - Clearly describe the data involved: iCloud Photos album metadata, filenames, album membership, and local iCloud Photos folder file access.
 - Clearly state that the app does not download images/videos from iCloud and does not upload files or data from the computer.
-- Clearly state that Apple ID credentials are used only to authenticate with Apple and are not stored by the app.
+- Clearly state that Apple ID credentials are submitted to the app's local backend login flow, used only to authenticate with Apple/iCloud through the iCloud service, and not stored by the app.
 - Require an explicit user action before continuing to authentication.
 - Remember accepted consent locally so returning users do not see the screen on every app load.
 - Preserve existing beta-expired blocking behavior and authenticated session handling.

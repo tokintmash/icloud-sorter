@@ -8,7 +8,7 @@ Users should understand and explicitly consent to the data access required befor
 - Explain that the app reads iCloud Photos metadata such as album names, asset filenames, and album membership.
 - Explain that the app needs access to the local iCloud Photos folder to find and move files into album folders.
 - Explain that the app does not download images or videos from iCloud and does not upload anything from the computer.
-- Explain that Apple ID credentials are sent only to Apple through the iCloud authentication library and are not stored by the app.
+- Explain that Apple ID credentials are used only for Apple/iCloud authentication through the app's local backend authentication flow and are not stored by the app.
 - Require the user to accept the consent statement before continuing to Apple ID login.
 - Keep consent local to the app; no new backend API or external dependency is introduced.
 
@@ -18,6 +18,7 @@ Users should understand and explicitly consent to the data access required befor
 - `data-access-consent`: Covers the pre-authentication consent experience for iCloud Photos metadata and local file access.
 
 ### Modified Capabilities
+- `frontend-flow`: The unauthenticated entry flow now shows consent before the authentication screen when current local consent has not been accepted.
 
 ## Impact
 
