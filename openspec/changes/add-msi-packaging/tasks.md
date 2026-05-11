@@ -10,6 +10,7 @@
 - [x] 2.2 Add a packaging command or script that creates the PyInstaller `onedir` bundle from `icloud_sorter.spec`.
 - [x] 2.3 Add MSI authoring configuration that packages the PyInstaller `onedir` output as the MSI payload.
 - [x] 2.4 Ensure generated build outputs are excluded from source control where appropriate.
+- [x] 2.5 Update `.github/workflows/build.yml` to install WiX, build the MSI in CI, upload the MSI artifact, and publish a stable `iCloudPhotoSorter-latest.zip` release asset containing the versioned MSI file.
 
 ## 3. Installer Behavior
 
@@ -23,7 +24,7 @@
 - [x] 4.1 Verify the installed app serves bundled `frontend/dist` assets from the installed PyInstaller layout.
 - [x] 4.2 Verify settings, cookies, logs if present, and SQLite state are written outside the installer-managed app directory.
 - [x] 4.3 Verify photo sorting still operates only against the configured iCloud Photos folder.
-- [ ] 4.4 Verify the installed app can start on a clean Windows environment with the declared prerequisites.
+- [x] 4.4 Verify the installed app can start on a clean Windows environment with the declared prerequisites.
 
 ## 5. Documentation and Verification
 

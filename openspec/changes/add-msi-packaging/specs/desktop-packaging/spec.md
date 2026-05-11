@@ -54,3 +54,11 @@ The change SHALL define verification steps for the packaged application on Windo
 #### Scenario: Packaging is verified
 - **WHEN** packaging work is completed
 - **THEN** verification covers MSI creation, install, launch, bundled frontend serving, uninstall, and user-data preservation
+
+### Requirement: Release ZIP contains versioned MSI
+The release workflow SHALL publish a stable `iCloudPhotoSorter-latest.zip` asset that contains the versioned MSI installer file.
+
+#### Scenario: Tagged release is published
+- **WHEN** a tagged release build publishes the public release artifact
+- **THEN** the release asset is named `iCloudPhotoSorter-latest.zip`
+- **THEN** the ZIP contains an MSI file named with the packaged application version
