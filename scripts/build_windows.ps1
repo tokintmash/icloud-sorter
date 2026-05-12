@@ -1,8 +1,14 @@
 # build_windows.ps1 - Build iCloud Photo Sorter for Windows
 # Usage: .\scripts\build_windows.ps1
 
-$ErrorActionPreference = "Continue"
-Set-Location $PSScriptRoot\..
+$ErrorActionPreference = "Stop"
+$repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")).ProviderPath
+Set-Location $repoRoot
+
+$python = Join-Path $repoRoot "venv\Scripts\python.exe"
+if (-not (Test-Path -LiteralPath $python)) {
+    $python = "python"
+}
 
 Write-Host "=== Step 1: Build frontend ===" -ForegroundColor Cyan
 Push-Location frontend
@@ -21,15 +27,15 @@ if (-not (Test-Path "frontend\dist\index.html")) {
 Write-Host "[DEBUG] dist check passed" -ForegroundColor Yellow
 
 Write-Host "=== Step 2: Install Python dependencies ===" -ForegroundColor Cyan
-pip install --pre -r requirements-build.txt
+& $python -m pip install --pre -r requirements-build.txt
 if ($LASTEXITCODE -ne 0) { Write-Error "pip install failed"; exit 1 }
 
 Write-Host "=== Step 3: Stamp beta build date ===" -ForegroundColor Cyan
-python scripts/stamp_beta.py
+& $python scripts/stamp_beta.py
 if ($LASTEXITCODE -ne 0) { Write-Error "Beta stamp failed"; exit 1 }
 
 Write-Host "=== Step 4: Run PyInstaller ===" -ForegroundColor Cyan
-pyinstaller icloud_sorter.spec --noconfirm
+& $python -m PyInstaller icloud_sorter.spec --noconfirm
 if ($LASTEXITCODE -ne 0) { Write-Error "PyInstaller failed"; exit 1 }
 
 if (Test-Path "dist\iCloudPhotoSorter\iCloudPhotoSorter.exe") {

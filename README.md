@@ -61,6 +61,16 @@ pip install -r requirements-build.txt
 
 The output is `dist\iCloudPhotoSorter\iCloudPhotoSorter.exe` — double-click to run.
 
+## Windows MSI Installer
+
+Build an MSI installer around the PyInstaller `onedir` desktop app:
+
+```powershell
+.\scripts\build_msi.ps1
+```
+
+The MSI output is written to `dist\installer\`. See [Windows MSI Packaging](docs/PACKAGING.md) for local dependencies, signing expectations, and verification steps.
+
 ## Releasing
 
 Push a version tag to trigger a GitHub Release in the public releases repo with the built `.zip` automatically:
