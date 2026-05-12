@@ -109,7 +109,12 @@ jobs:
           $metadata = Get-Content -LiteralPath packaging\metadata.json -Raw | ConvertFrom-Json
           $version = $metadata.version
           if ('${{ github.ref }}'.StartsWith('refs/tags/v')) {
-            $version = '${{ github.ref_name }}'.TrimStart('v')
+            $tagVersion = '${{ github.ref_name }}'.TrimStart('v')
+            if ($tagVersion -match '^(?<msiVersion>\d{1,5}\.\d{1,5}\.\d{1,5})(?:[-+].*)?$') {
+              $version = $Matches.msiVersion
+            } else {
+              $version = $tagVersion
+            }
           }
           if ($version -notmatch '^\d{1,5}\.\d{1,5}\.\d{1,5}$') {
             Write-Error "MSI version must use numeric major.minor.patch format. Received: $version"
