@@ -5,7 +5,7 @@ This project uses PyInstaller `onedir` output as the MSI payload. The MSI is int
 ## Packaging Decisions
 
 - MSI authoring tool: WiX Toolset CLI v5 or newer, invoked with `wix build`.
-- Required local dependencies: Windows 10/11, PowerShell 5.1 or newer, Python build dependencies from `requirements-build.txt`, Node.js 18 or newer, npm, and WiX Toolset CLI on `PATH`.
+- Required local dependencies: Windows 10/11, PowerShell 5.1 or newer, Python build dependencies from `requirements-build.txt`, Node.js 18 or newer, npm, .NET SDK 8 or newer, and WiX Toolset CLI on `PATH`.
 - Product name: `iCloud Photo Sorter`.
 - Manufacturer: `tokintmash`.
 - Version source: `packaging\metadata.json`, overridable with `-Version` on the MSI build script.
@@ -30,8 +30,10 @@ npm install
 cd ..
 
 # Install WiX separately if `wix --version` is not available.
-# Example: dotnet tool install --global wix --version 5.*
-# You may need to reopen the shell after installing a .NET global tool.
+# WiX is installed as a .NET global tool, so the .NET SDK must be installed first.
+dotnet --version
+dotnet tool install --global wix --version 5.0.2
+wix --version
 
 .\scripts\build_msi.ps1
 ```

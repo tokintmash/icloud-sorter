@@ -34,3 +34,6 @@ PUBLIC_RELEASES_TOKEN
 .DS_Store
 Thumbs.db
 sonar-issues.json
+
+# SonarQube
+get_issues.sh
