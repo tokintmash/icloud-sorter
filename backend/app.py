@@ -15,10 +15,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from backend.logging_config import configure_logging
 from backend.models.db import init_db
 from backend.routers import auth, albums, sort, settings
 from backend.runtime_paths import frontend_dist
 from backend.lifecycle import can_shutdown, request_shutdown
+
+
+configure_logging()
 
 
 @asynccontextmanager
