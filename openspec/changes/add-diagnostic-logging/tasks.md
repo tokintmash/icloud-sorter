@@ -1,7 +1,7 @@
 ## 1. Logging Configuration
 
 - [x] 1.1 Add a backend logging configuration module using stdlib logging and a rotating file handler.
-- [ ] 1.2 Add app config constants for log directory, log file path, default log level, rotation size, and backup count.
+- [x] 1.2 Add app config constants for log directory, log file path, default log level, rotation size, and backup count.
 - [ ] 1.3 Configure logging idempotently during backend startup so direct Python, uvicorn import, and desktop launch paths share the same behavior.
 - [ ] 1.4 Add explicit debug opt-in through an environment variable or equivalent non-UI mechanism.
 

@@ -6,6 +6,11 @@ APP_STATE_DIR: Path = Path.home() / ".icloud-sorter"
 STATE_DB_PATH: Path = APP_STATE_DIR / "state.db"
 COOKIE_DIR: Path = APP_STATE_DIR / "cookies"
 SETTINGS_PATH: Path = APP_STATE_DIR / "settings.json"
+LOG_DIR: Path = APP_STATE_DIR / "logs"
+LOG_FILE_PATH: Path = LOG_DIR / "app.log"
+DEFAULT_LOG_LEVEL: str = "INFO"
+LOG_ROTATION_MAX_BYTES: int = 5 * 1024 * 1024
+LOG_ROTATION_BACKUP_COUNT: int = 3
 
 DEFAULT_ICLOUD_FOLDER: str = ""
 
