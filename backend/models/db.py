@@ -1,6 +1,10 @@
+import logging
 import sqlite3
 
 from backend.config import STATE_DB_PATH
+
+
+logger = logging.getLogger(__name__)
 
 
 SCHEMA = """
@@ -26,6 +30,7 @@ def init_db() -> None:
     try:
         conn.executescript(SCHEMA)
         conn.commit()
+        logger.info("Database schema initialized")
     finally:
         conn.close()
 

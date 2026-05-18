@@ -7,7 +7,7 @@
 
 ## 2. Diagnostic Coverage
 
-- [ ] 2.1 Add `INFO` startup and initialization logs that confirm logging setup and database initialization without exposing secrets.
+- [x] 2.1 Add `INFO` startup and initialization logs that confirm logging setup and database initialization without exposing secrets.
 - [ ] 2.2 Add concise authentication outcome logs that do not include passwords, 2FA codes, cookies, tokens, or raw auth responses.
 - [ ] 2.3 Add concise album metadata logs for fetch/sync start, completion counts, warnings, and exceptions without raw iCloud responses.
 - [ ] 2.4 Add concise sort logs for start, completion, aggregate counts, warnings, and fatal errors without default per-file logging.

@@ -1,3 +1,4 @@
+import logging
 import sys
 from pathlib import Path
 
@@ -23,11 +24,15 @@ from backend.lifecycle import can_shutdown, request_shutdown
 
 
 configure_logging()
+logger = logging.getLogger(__name__)
+logger.info("Backend diagnostic logging configured")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    logger.info("Backend startup initializing database")
     init_db()
+    logger.info("Backend startup database initialized")
     yield
 
 
