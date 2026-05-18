@@ -1,4 +1,5 @@
 import json
+import logging
 import sys
 from pathlib import Path
 
@@ -14,6 +15,7 @@ LOG_ROTATION_MAX_BYTES: int = 5 * 1024 * 1024
 LOG_ROTATION_BACKUP_COUNT: int = 3
 
 DEFAULT_ICLOUD_FOLDER: str = ""
+logger = logging.getLogger(__name__)
 
 _AUTO_DETECT_PATHS = [
     Path.home() / "Pictures" / "iCloud Photos" / "Photos",
@@ -70,8 +72,10 @@ def load_settings() -> dict[str, str]:
             with open(SETTINGS_PATH, "r") as f:
                 stored = json.load(f)
             defaults.update(stored)
-        except (json.JSONDecodeError, OSError):
-            pass
+        except json.JSONDecodeError:
+            logger.warning("Settings load failed: invalid JSON")
+        except OSError:
+            logger.warning("Settings load failed: unable to read settings file", exc_info=True)
     return defaults
 
 
@@ -79,3 +83,4 @@ def save_settings(settings: dict[str, str]) -> None:
     SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(SETTINGS_PATH, "w") as f:
         json.dump(settings, f, indent=2)
+    logger.info("Settings saved")
