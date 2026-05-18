@@ -1,4 +1,5 @@
 import base64
+import logging
 from unittest.mock import patch, MagicMock
 
 
@@ -159,6 +160,21 @@ def test_login_api_error(mock_pyicloud_cls, mock_state):
     assert result["error"] == "internal_error"
 
 
+@patch("backend.services.icloud_service.state_service")
+@patch("backend.services.icloud_service.PyiCloudService")
+def test_login_does_not_log_password(mock_pyicloud_cls, mock_state, caplog):
+    instance = MagicMock()
+    instance.requires_2fa = False
+    instance.requires_2sa = False
+    mock_pyicloud_cls.return_value = instance
+    caplog.set_level(logging.INFO, logger="backend.services.icloud_service")
+
+    result = login("test@apple.com", "super-secret-password")
+
+    assert result == {"authenticated": True, "requires_2fa": False}
+    assert "super-secret-password" not in caplog.text
+
+
 # --- validate_2fa ---
 
 def test_validate_2fa_no_session():
@@ -194,6 +210,21 @@ def test_validate_2fa_invalid_code(mock_icloud):
     try:
         result = validate_2fa("000000")
         assert result["error"] == "2fa_failed"
+    finally:
+        svc._icloud = original
+
+
+@patch("backend.services.icloud_service._icloud")
+def test_validate_2fa_does_not_log_code(mock_icloud, caplog):
+    import backend.services.icloud_service as svc
+    mock_icloud.validate_2fa_code.return_value = False
+    original = svc._icloud
+    svc._icloud = mock_icloud
+    caplog.set_level(logging.INFO, logger="backend.services.icloud_service")
+    try:
+        result = validate_2fa("654321")
+        assert result["error"] == "2fa_failed"
+        assert "654321" not in caplog.text
     finally:
         svc._icloud = original
 
