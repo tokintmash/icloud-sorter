@@ -15,7 +15,7 @@
 
 ## 3. Tests and Verification
 
-- [ ] 3.1 Add tests that logging setup creates the log directory/file handler and is idempotent.
+- [x] 3.1 Add tests that logging setup creates the log directory/file handler and is idempotent.
 - [ ] 3.2 Add tests that default logging excludes `DEBUG` records and explicit debug opt-in includes them.
 - [ ] 3.3 Add tests or assertions covering rotation configuration limits.
 - [ ] 3.4 Add targeted tests or review fixtures to confirm authentication secrets and 2FA codes are not logged.
