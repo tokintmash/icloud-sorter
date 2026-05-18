@@ -164,8 +164,10 @@ def _is_authenticated() -> bool:
 
 def get_albums() -> dict[str, Any] | list[dict[str, Any]]:
     if not _is_authenticated():
+        logger.info("Album fetch blocked: not authenticated")
         return {"error": "not_authenticated", "message": "Not authenticated. Please login first."}
 
+    logger.info("Album fetch started")
     try:
         photos = _icloud.photos  # type: ignore[union-attr]
         albums_raw: list[dict[str, Any]] = []
@@ -178,6 +180,7 @@ def get_albums() -> dict[str, Any] | list[dict[str, Any]]:
                 asset_count = len(album)
             except Exception:
                 asset_count = 0
+                logger.warning("Album fetch could not determine asset count")
 
             albums_raw.append({
                 "id": album_id,
@@ -196,6 +199,7 @@ def get_albums() -> dict[str, Any] | list[dict[str, Any]]:
                 "folder_name": folder_map[a["id"]],
             })
 
+        logger.info("Album fetch completed: albums=%s", len(albums_list))
         return albums_list
     except PyiCloudAPIResponseException as e:
         logger.exception("iCloud API error fetching albums")
@@ -211,12 +215,15 @@ def sync_album_metadata(folder_map: dict[str, str], album_ids: list[str] | None 
     If *album_ids* is given, only those albums are synced; otherwise all albums.
     """
     if not _is_authenticated():
+        logger.info("Album metadata sync blocked: not authenticated")
         return {"error": "not_authenticated", "message": "Not authenticated. Please login first."}
 
+    logger.info("Album metadata sync started: selected_albums=%s", len(album_ids) if album_ids else "all")
     try:
         photos = _icloud.photos  # type: ignore[union-attr]
         rows: list[dict[str, str]] = []
         filter_ids = set(album_ids) if album_ids else None
+        skipped_assets = 0
 
         for album in photos.albums:
             name = getattr(album, "title", None) or getattr(album, "name", "")
@@ -230,6 +237,7 @@ def sync_album_metadata(folder_map: dict[str, str], album_ids: list[str] | None 
             for asset in album:
                 fn = _get_asset_filename(asset)
                 if not fn:
+                    skipped_assets += 1
                     continue
                 rows.append({
                     "album_id": album_id,
@@ -239,6 +247,9 @@ def sync_album_metadata(folder_map: dict[str, str], album_ids: list[str] | None 
                 })
 
         state_service.replace_album_files(rows, album_ids)
+        if skipped_assets:
+            logger.warning("Album metadata sync skipped assets without filenames: count=%s", skipped_assets)
+        logger.info("Album metadata sync completed: files=%s", len(rows))
         return len(rows)
     except PyiCloudAPIResponseException as e:
         logger.exception("iCloud API error syncing metadata")
