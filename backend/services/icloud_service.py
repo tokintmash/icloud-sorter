@@ -74,6 +74,7 @@ def _compute_folder_names(albums: list[dict[str, str]]) -> dict[str, str]:
 def login(apple_id: str, password: str) -> dict[str, Any]:
     global _icloud, _apple_id, _requires_2fa
 
+    logger.info("Login attempt started")
     COOKIE_DIR.mkdir(parents=True, exist_ok=True)
     cookie_dir = str(COOKIE_DIR)
 
@@ -83,11 +84,13 @@ def login(apple_id: str, password: str) -> dict[str, Any]:
         _icloud = None
         _apple_id = None
         _requires_2fa = False
+        logger.info("Login failed: invalid credentials")
         return {"error": "invalid_credentials", "message": "Invalid Apple ID or password"}
     except PyiCloudAPIResponseException as e:
         _icloud = None
         _apple_id = None
         _requires_2fa = False
+        logger.exception("Login failed: iCloud API error")
         return {"error": "internal_error", "message": f"iCloud API error: {e}"}
     except Exception as e:
         _icloud = None
@@ -101,25 +104,31 @@ def login(apple_id: str, password: str) -> dict[str, Any]:
     if _icloud.requires_2fa or _icloud.requires_2sa:
         _requires_2fa = True
         state_service.save_session(apple_id, cookie_dir)
+        logger.info("Login requires two-factor authentication")
         return {"authenticated": False, "requires_2fa": True}
 
     _requires_2fa = False
     state_service.save_session(apple_id, cookie_dir)
+    logger.info("Login succeeded")
     return {"authenticated": True, "requires_2fa": False}
 
 
 def validate_2fa(code: str) -> dict[str, Any]:
     global _requires_2fa
 
+    logger.info("Two-factor authentication validation started")
     if _icloud is None:
+        logger.info("Two-factor authentication validation failed: no active session")
         return {"error": "not_authenticated", "message": "No active login session. Please login first."}
 
     try:
         result = _icloud.validate_2fa_code(code)
         if not result:
+            logger.info("Two-factor authentication validation failed: invalid code")
             return {"error": "2fa_failed", "message": "Invalid 2FA code"}
 
         _requires_2fa = False
+        logger.info("Two-factor authentication validation succeeded")
         return {"authenticated": True}
     except Exception as e:
         logger.exception("Error validating 2FA code")
