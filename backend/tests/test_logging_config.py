@@ -79,3 +79,14 @@ def test_debug_logging_requires_explicit_opt_in(tmp_path, monkeypatch):
         handler.flush()
 
     assert "debug should be written" in log_path.read_text(encoding="utf-8")
+
+
+def test_configure_logging_applies_rotation_limits(tmp_path):
+    log_path = tmp_path / "logs" / "app.log"
+
+    configure_logging(log_path=log_path, max_bytes=1024, backup_count=2)
+    handler = _diagnostic_handlers()[0]
+
+    assert isinstance(handler, RotatingFileHandler)
+    assert handler.maxBytes == 1024
+    assert handler.backupCount == 2
