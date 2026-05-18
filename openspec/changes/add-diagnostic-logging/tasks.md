@@ -20,4 +20,4 @@
 - [x] 3.3 Add tests or assertions covering rotation configuration limits.
 - [x] 3.4 Add targeted tests or review fixtures to confirm authentication secrets and 2FA codes are not logged.
 - [x] 3.5 Run backend tests with `./venv/Scripts/python.exe -m pytest`.
-- [ ] 3.6 Run frontend build with `cd frontend && npm run build` if frontend-affecting files changed.
+- [x] 3.6 Run frontend build with `cd frontend && npm run build` if frontend-affecting files changed.
