@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Any
 
 from backend.config import APP_STATE_DIR
@@ -6,6 +7,7 @@ from backend.models.db import get_db
 
 
 _SESSION_PATH = APP_STATE_DIR / "session.json"
+logger = logging.getLogger(__name__)
 
 
 def save_session(apple_id: str, cookie_dir: str) -> None:
@@ -13,6 +15,7 @@ def save_session(apple_id: str, cookie_dir: str) -> None:
     data = {"apple_id": apple_id, "cookie_dir": cookie_dir}
     with open(_SESSION_PATH, "w") as f:
         json.dump(data, f, indent=2)
+    logger.info("Session metadata saved")
 
 
 def get_session() -> dict[str, Any] | None:
@@ -21,7 +24,11 @@ def get_session() -> dict[str, Any] | None:
     try:
         with open(_SESSION_PATH, "r") as f:
             return json.load(f)
-    except (json.JSONDecodeError, OSError):
+    except json.JSONDecodeError:
+        logger.warning("Session metadata load failed: invalid JSON")
+        return None
+    except OSError:
+        logger.warning("Session metadata load failed: unable to read session file", exc_info=True)
         return None
 
 

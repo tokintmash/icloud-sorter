@@ -35,32 +35,39 @@ class SorterService:
         self._background_task: asyncio.Task[None] | None = None
 
     def start(self, album_ids: list[str]) -> dict:
+        logger.info("Sort start requested: selected_albums=%s", len(album_ids))
         if self._running:
+            logger.warning("Sort start rejected: sort already in progress")
             return {"error": "sort_in_progress", "message": "A sort operation is already in progress"}
 
         if not icloud_service._is_authenticated():
+            logger.info("Sort start blocked: not authenticated")
             return {"error": "not_authenticated", "message": "Not authenticated. Please login first."}
 
         settings = load_settings()
         icloud_folder = settings.get("icloud_folder", "")
 
         if not icloud_folder or not Path(icloud_folder).is_dir():
+            logger.warning("Sort start blocked: iCloud folder missing or invalid")
             return {"error": "file_not_found", "message": "iCloud folder not found. Please configure it in settings."}
 
         # Fetch album metadata from iCloud (only selected albums)
         albums_result = icloud_service.get_albums()
         if isinstance(albums_result, dict) and "error" in albums_result:
+            logger.warning("Sort start blocked: album fetch failed with error=%s", albums_result.get("error"))
             return albums_result
 
         folder_map = {a["id"]: a["folder_name"] for a in albums_result}
         sync_result = icloud_service.sync_album_metadata(folder_map, album_ids)
         if isinstance(sync_result, dict) and "error" in sync_result:
+            logger.warning("Sort start blocked: metadata sync failed with error=%s", sync_result.get("error"))
             return sync_result
 
         state_service.reset_album_files(album_ids)
         rows = state_service.get_pending_album_files(album_ids)
 
         if not rows:
+            logger.warning("Sort start blocked: no pending files")
             return {"error": "file_not_found", "message": "No files to sort for the selected albums. Fetch albums first."}
 
         self._reset_progress(len(rows))
@@ -69,6 +76,7 @@ class SorterService:
             asyncio.to_thread(self._run_sort, rows, icloud_folder, duplicate_handling)
         )
         self._background_task.add_done_callback(self._clear_background_task)
+        logger.info("Sort started: total_files=%s duplicate_handling=%s", len(rows), duplicate_handling)
         return {"total_files": len(rows)}
 
     def _reset_progress(self, total_files: int) -> None:
@@ -405,6 +413,14 @@ class SorterService:
             context = self._prepare_run_context(rows, icloud_folder)
             self._process_rows(rows, context, duplicate_handling)
             self._mark_sort_complete()
+            logger.info(
+                "Sort completed: total_files=%s completed_files=%s failed_files=%s",
+                self._total_files,
+                self._completed_files,
+                self._failed_files,
+            )
+            if self._failed_files:
+                logger.warning("Sort completed with failed files: failed_files=%s", self._failed_files)
         except Exception as error:
             self._record_fatal_sort_error(error)
         finally:
