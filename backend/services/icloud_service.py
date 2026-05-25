@@ -1,6 +1,6 @@
 import base64
-import re
 import logging
+import re
 from typing import Any
 
 from pyicloud import PyiCloudService
@@ -16,6 +16,37 @@ logger = logging.getLogger(__name__)
 
 
 _INVALID_CHARS_RE = re.compile(r'[/\\:*?"<>|]')
+_SAFE_ERROR_CODE_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,64}$")
+
+
+def _safe_icloud_api_code(code: Any) -> str | int | None:
+    if isinstance(code, int):
+        return code
+    if isinstance(code, str) and _SAFE_ERROR_CODE_RE.fullmatch(code):
+        return code
+    return None
+
+
+def _safe_icloud_api_status(response: Any) -> int | None:
+    status_code = getattr(response, "status_code", None)
+    return status_code if isinstance(status_code, int) else None
+
+
+def _safe_icloud_api_message(exc: PyiCloudAPIResponseException) -> str:
+    code = _safe_icloud_api_code(getattr(exc, "code", None))
+    if code is None:
+        return "iCloud API error"
+    return f"iCloud API error ({code})"
+
+
+def _log_icloud_api_error(message: str, exc: PyiCloudAPIResponseException) -> None:
+    logger.error(
+        "%s: exception=%s code=%s status_code=%s",
+        message,
+        exc.__class__.__name__,
+        _safe_icloud_api_code(getattr(exc, "code", None)),
+        _safe_icloud_api_status(getattr(exc, "response", None)),
+    )
 
 
 def _get_asset_filename(asset: Any) -> str | None:
@@ -90,13 +121,13 @@ def login(apple_id: str, password: str) -> dict[str, Any]:
         _icloud = None
         _apple_id = None
         _requires_2fa = False
-        logger.exception("Login failed: iCloud API error")
-        return {"error": "internal_error", "message": f"iCloud API error: {e}"}
+        _log_icloud_api_error("Login failed: iCloud API error", e)
+        return {"error": "internal_error", "message": _safe_icloud_api_message(e)}
     except Exception as e:
         _icloud = None
         _apple_id = None
         _requires_2fa = False
-        logger.exception("Unexpected error during login")
+        logger.error("Unexpected error during login: exception=%s", e.__class__.__name__)
         return {"error": "internal_error", "message": f"Unexpected error: {e}"}
 
     _apple_id = apple_id
@@ -130,8 +161,11 @@ def validate_2fa(code: str) -> dict[str, Any]:
         _requires_2fa = False
         logger.info("Two-factor authentication validation succeeded")
         return {"authenticated": True}
+    except PyiCloudAPIResponseException as e:
+        _log_icloud_api_error("Two-factor authentication validation failed: iCloud API error", e)
+        return {"error": "2fa_failed", "message": _safe_icloud_api_message(e)}
     except Exception as e:
-        logger.exception("Error validating 2FA code")
+        logger.error("Error validating 2FA code: exception=%s", e.__class__.__name__)
         return {"error": "2fa_failed", "message": f"2FA validation failed: {e}"}
 
 
@@ -202,8 +236,8 @@ def get_albums() -> dict[str, Any] | list[dict[str, Any]]:
         logger.info("Album fetch completed: albums=%s", len(albums_list))
         return albums_list
     except PyiCloudAPIResponseException as e:
-        logger.exception("iCloud API error fetching albums")
-        return {"error": "internal_error", "message": f"iCloud API error: {e}"}
+        _log_icloud_api_error("iCloud API error fetching albums", e)
+        return {"error": "internal_error", "message": _safe_icloud_api_message(e)}
     except Exception as e:
         logger.exception("Error fetching albums")
         return {"error": "internal_error", "message": f"Failed to fetch albums: {e}"}
@@ -252,8 +286,8 @@ def sync_album_metadata(folder_map: dict[str, str], album_ids: list[str] | None 
         logger.info("Album metadata sync completed: files=%s", len(rows))
         return len(rows)
     except PyiCloudAPIResponseException as e:
-        logger.exception("iCloud API error syncing metadata")
-        return {"error": "internal_error", "message": f"iCloud API error: {e}"}
+        _log_icloud_api_error("iCloud API error syncing metadata", e)
+        return {"error": "internal_error", "message": _safe_icloud_api_message(e)}
     except Exception as e:
         logger.exception("Error syncing album metadata")
         return {"error": "internal_error", "message": f"Failed to sync metadata: {e}"}

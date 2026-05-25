@@ -23,10 +23,24 @@ def _raise_filename_access_error(message: str = "fail") -> str:
     raise FilenameAccessError(message)
 
 
-def _raise_api_response_exception(message: str = "fail") -> None:
+def _raise_api_response_exception(message: str = "fail", text: str | None = None) -> None:
+    raise _api_response_exception(
+        reason=message,
+        text=text or "raw-icloud-response-with-auth-material",
+    )
+
+
+def _api_response_exception(
+    reason: str = "API down",
+    code: str = "SERVICE_UNAVAILABLE",
+    text: str = "raw-icloud-response-with-auth-material",
+):
     from pyicloud.exceptions import PyiCloudAPIResponseException
 
-    raise PyiCloudAPIResponseException(message)
+    response = MagicMock()
+    response.status_code = 503
+    response.text = text
+    return PyiCloudAPIResponseException(reason, code=code, response=response)
 
 
 # --- _sanitize_folder_name ---
@@ -162,6 +176,23 @@ def test_login_api_error(mock_pyicloud_cls, mock_state):
 
 @patch("backend.services.icloud_service.state_service")
 @patch("backend.services.icloud_service.PyiCloudService")
+def test_login_api_error_does_not_log_raw_response(mock_pyicloud_cls, mock_state, caplog):
+    raw_response = "raw-auth-response session-token=secret"
+    mock_pyicloud_cls.side_effect = _api_response_exception(
+        code="AUTH_FAILED",
+        text=raw_response,
+    )
+    caplog.set_level(logging.ERROR, logger="backend.services.icloud_service")
+
+    result = login("test@apple.com", "pass123")
+
+    assert result == {"error": "internal_error", "message": "iCloud API error (AUTH_FAILED)"}
+    assert raw_response not in caplog.text
+    assert raw_response not in result["message"]
+
+
+@patch("backend.services.icloud_service.state_service")
+@patch("backend.services.icloud_service.PyiCloudService")
 def test_login_does_not_log_password(mock_pyicloud_cls, mock_state, caplog):
     instance = MagicMock()
     instance.requires_2fa = False
@@ -210,6 +241,26 @@ def test_validate_2fa_invalid_code(mock_icloud):
     try:
         result = validate_2fa("000000")
         assert result["error"] == "2fa_failed"
+    finally:
+        svc._icloud = original
+
+
+@patch("backend.services.icloud_service._icloud")
+def test_validate_2fa_api_error_does_not_log_raw_response(mock_icloud, caplog):
+    import backend.services.icloud_service as svc
+    raw_response = "raw-2fa-response trusted-token=secret"
+    mock_icloud.validate_2fa_code.side_effect = _api_response_exception(
+        code="2FA_ERROR",
+        text=raw_response,
+    )
+    original = svc._icloud
+    svc._icloud = mock_icloud
+    caplog.set_level(logging.ERROR, logger="backend.services.icloud_service")
+    try:
+        result = validate_2fa("654321")
+        assert result == {"error": "2fa_failed", "message": "iCloud API error (2FA_ERROR)"}
+        assert raw_response not in caplog.text
+        assert raw_response not in result["message"]
     finally:
         svc._icloud = original
 
@@ -343,6 +394,30 @@ def test_get_albums_api_error():
         svc._requires_2fa = orig_2fa
 
 
+def test_get_albums_api_error_does_not_log_raw_response(caplog):
+    import backend.services.icloud_service as svc
+    orig_icloud = svc._icloud
+    orig_2fa = svc._requires_2fa
+    raw_response = "raw-album-response cookie=secret"
+
+    mock_icloud = MagicMock()
+    type(mock_icloud).photos = property(
+        lambda s: _raise_api_response_exception("album down", text=raw_response)
+    )
+
+    svc._icloud = mock_icloud
+    svc._requires_2fa = False
+    caplog.set_level(logging.ERROR, logger="backend.services.icloud_service")
+    try:
+        result = get_albums()
+        assert result == {"error": "internal_error", "message": "iCloud API error (SERVICE_UNAVAILABLE)"}
+        assert raw_response not in caplog.text
+        assert raw_response not in result["message"]
+    finally:
+        svc._icloud = orig_icloud
+        svc._requires_2fa = orig_2fa
+
+
 # --- sync_album_metadata ---
 
 def test_sync_album_metadata_populates_db(tmp_db):
@@ -431,6 +506,30 @@ def test_sync_album_metadata_handles_bad_asset(tmp_db):
         folder_map = {"a1": "Album"}
         result = sync_album_metadata(folder_map, album_ids=["a1"])
         assert result == 0  # bad asset skipped
+    finally:
+        svc._icloud = orig_icloud
+        svc._requires_2fa = orig_2fa
+
+
+def test_sync_album_metadata_api_error_does_not_log_raw_response(tmp_db, caplog):
+    import backend.services.icloud_service as svc
+    orig_icloud = svc._icloud
+    orig_2fa = svc._requires_2fa
+    raw_response = "raw-metadata-response auth-token=secret"
+
+    mock_icloud = MagicMock()
+    type(mock_icloud).photos = property(
+        lambda s: _raise_api_response_exception("metadata down", text=raw_response)
+    )
+
+    svc._icloud = mock_icloud
+    svc._requires_2fa = False
+    caplog.set_level(logging.ERROR, logger="backend.services.icloud_service")
+    try:
+        result = sync_album_metadata({"a1": "Album"}, album_ids=["a1"])
+        assert result == {"error": "internal_error", "message": "iCloud API error (SERVICE_UNAVAILABLE)"}
+        assert raw_response not in caplog.text
+        assert raw_response not in result["message"]
     finally:
         svc._icloud = orig_icloud
         svc._requires_2fa = orig_2fa

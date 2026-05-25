@@ -12,6 +12,7 @@
 - [x] 2.3 Add concise album metadata logs for fetch/sync start, completion counts, warnings, and exceptions without raw iCloud responses.
 - [x] 2.4 Add concise sort logs for start, completion, aggregate counts, warnings, and fatal errors without default per-file logging.
 - [x] 2.5 Add settings/state warnings where load/save or initialization failures are currently swallowed or hard to diagnose.
+- [x] 2.6 Sanitize `PyiCloudAPIResponseException` logging so raw iCloud response bodies are not persisted.
 
 ## 3. Tests and Verification
 
@@ -21,3 +22,4 @@
 - [x] 3.4 Add targeted tests or review fixtures to confirm authentication secrets and 2FA codes are not logged.
 - [x] 3.5 Run backend tests with `./venv/Scripts/python.exe -m pytest`.
 - [x] 3.6 Run frontend build with `cd frontend && npm run build` if frontend-affecting files changed.
+- [x] 3.7 Add regression tests confirming raw iCloud API response bodies are not logged or returned.
