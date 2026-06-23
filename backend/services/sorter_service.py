@@ -5,6 +5,7 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
+from backend.beta import APP_EXPIRED_ERROR, APP_EXPIRED_MESSAGE, is_app_expired
 from backend.services import state_service, icloud_service
 from backend.config import load_settings
 
@@ -32,6 +33,8 @@ class SorterService:
         self._current_file: str = ""
         self._current_album: str = ""
         self._errors: list[dict[str, str]] = []
+        self._error_code: str | None = None
+        self._message: str | None = None
         self._background_task: asyncio.Task[None] | None = None
 
     def start(self, album_ids: list[str]) -> dict:
@@ -88,6 +91,8 @@ class SorterService:
         self._current_file = ""
         self._current_album = ""
         self._errors = []
+        self._error_code = None
+        self._message = None
 
     def _clear_background_task(self, task: asyncio.Task[None]) -> None:
         if self._background_task is task:
@@ -392,11 +397,34 @@ class SorterService:
         context: SortRunContext,
         duplicate_handling: str,
     ) -> None:
-        for row in rows:
+        for index, row in enumerate(rows):
+            if is_app_expired():
+                self._record_expiry_stop(rows[index:])
+                return
             self._process_row(row, context, duplicate_handling)
 
     def _mark_sort_complete(self) -> None:
         self._status = "complete"
+
+    def _record_expiry_stop(self, remaining_rows: list[SortRow]) -> None:
+        self._status = "error"
+        self._error_code = APP_EXPIRED_ERROR
+        self._message = APP_EXPIRED_MESSAGE
+        self._current_file = ""
+        self._current_album = ""
+
+        for row in remaining_rows:
+            state_service.mark_album_file_failed(row["album_id"], row["filename"], APP_EXPIRED_MESSAGE)
+
+        self._failed_files += len(remaining_rows)
+        self._errors.append(
+            {
+                "filename": "",
+                "error": APP_EXPIRED_MESSAGE,
+                "album": "",
+            }
+        )
+        logger.warning("Sort stopped because app expired: remaining_files=%s", len(remaining_rows))
 
     def _record_fatal_sort_error(self, error: Exception) -> None:
         logger.exception("Fatal error during sort")
@@ -412,7 +440,8 @@ class SorterService:
         try:
             context = self._prepare_run_context(rows, icloud_folder)
             self._process_rows(rows, context, duplicate_handling)
-            self._mark_sort_complete()
+            if self._status != "error":
+                self._mark_sort_complete()
             logger.info(
                 "Sort completed: total_files=%s completed_files=%s failed_files=%s",
                 self._total_files,
@@ -435,6 +464,8 @@ class SorterService:
             "current_file": self._current_file,
             "current_album": self._current_album,
             "errors": self._errors,
+            "error_code": self._error_code,
+            "message": self._message,
         }
 
     def is_running(self) -> bool:

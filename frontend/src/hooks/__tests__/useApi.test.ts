@@ -5,7 +5,7 @@ const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
 // Import after mocking fetch
-import { login, submit2fa, getSession, getAlbums, getSettings, updateSettings, startSort, ApiError } from '../../hooks/useApi';
+import { login, submit2fa, getSession, getAlbums, getSettings, updateSettings, startSort, getBetaStatus, ApiError } from '../../hooks/useApi';
 
 function mockResponse(data: unknown, ok = true, status = 200) {
   return {
@@ -42,6 +42,18 @@ describe('apiFetch', () => {
     } catch (e) {
       expect((e as ApiError).code).toBe('invalid_credentials');
     }
+  });
+
+  it('preserves app_expired error code on protected API failures', async () => {
+    mockFetch.mockResolvedValue(mockResponse({
+      error: 'app_expired',
+      message: 'This beta has expired. Contact the author of the app to get an up-to-date version.',
+    }, false, 403));
+
+    await expect(getAlbums()).rejects.toMatchObject({
+      code: 'app_expired',
+      message: 'This beta has expired. Contact the author of the app to get an up-to-date version.',
+    });
   });
 
   it('throws internal_error on non-JSON error body', async () => {
@@ -100,5 +112,11 @@ describe('endpoint functions', () => {
     mockFetch.mockResolvedValue(mockResponse({ total_files: 10 }));
     await startSort(['a1']);
     expect(mockFetch).toHaveBeenCalledWith('/api/sort/start', expect.objectContaining({ method: 'POST' }));
+  });
+
+  it('getBetaStatus calls GET /api/app/beta', async () => {
+    mockFetch.mockResolvedValue(mockResponse({ is_beta: false, expired: false, expires_on: null, days_remaining: null }));
+    await getBetaStatus();
+    expect(mockFetch).toHaveBeenCalledWith('/api/app/beta', expect.anything());
   });
 });

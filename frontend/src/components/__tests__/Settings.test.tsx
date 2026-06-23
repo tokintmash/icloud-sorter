@@ -29,7 +29,7 @@ describe('Settings', () => {
   it('loads and displays current icloud_folder', async () => {
     mockGetSettings.mockResolvedValue({ icloud_folder: '/photos/icloud', duplicate_handling: 'move_only' });
 
-    render(<Settings />);
+    render(<Settings onAppExpired={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByDisplayValue('/photos/icloud')).toBeInTheDocument();
@@ -39,7 +39,7 @@ describe('Settings', () => {
   it('exposes duplicate handling as an accessible radio group', async () => {
     mockGetSettings.mockResolvedValue({ icloud_folder: '/photos/icloud', duplicate_handling: 'move_only' });
 
-    render(<Settings />);
+    render(<Settings onAppExpired={vi.fn()} />);
 
     expect(await screen.findByRole('group', { name: /cross-album duplicates/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/move to first album only/i)).toBeChecked();
@@ -51,7 +51,7 @@ describe('Settings', () => {
     mockUpdateSettings.mockResolvedValue({ icloud_folder: '/new', duplicate_handling: 'move_only' });
     const user = userEvent.setup();
 
-    render(<Settings />);
+    render(<Settings onAppExpired={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByDisplayValue('/old')).toBeInTheDocument();
@@ -72,7 +72,7 @@ describe('Settings', () => {
     mockUpdateSettings.mockRejectedValue(new ApiError('internal_error', 'Save failed'));
     const user = userEvent.setup();
 
-    render(<Settings />);
+    render(<Settings onAppExpired={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByDisplayValue('/old')).toBeInTheDocument();

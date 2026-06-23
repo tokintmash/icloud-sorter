@@ -7,11 +7,13 @@ and check the current date against an external time API.
 
 from __future__ import annotations
 
-import urllib.request
 import json
-from datetime import date, timedelta
+import urllib.request
+from datetime import date, datetime, timedelta, timezone
 
 BETA_DAYS = 10
+APP_EXPIRED_ERROR = "app_expired"
+APP_EXPIRED_MESSAGE = "This beta has expired. Contact the author of the app to get an up-to-date version."
 
 # WorldTimeAPI — open source, no API key required
 _TIME_API_URL = "https://worldtimeapi.org/api/timezone/Etc/UTC"
@@ -36,6 +38,23 @@ def _get_remote_date() -> date:
     return date.fromisoformat(data["datetime"][:10])
 
 
+def _get_local_utc_date() -> date:
+    """Return today's local UTC date."""
+    return datetime.now(timezone.utc).date()
+
+
+def _get_current_date() -> date:
+    """Return remote UTC date, falling back to local UTC if lookup fails."""
+    try:
+        return _get_remote_date()
+    except Exception:
+        return _get_local_utc_date()
+
+
+def _get_expiry(build_date: date) -> date:
+    return build_date + timedelta(days=BETA_DAYS)
+
+
 def get_beta_status() -> dict:
     """Return beta status info.
 
@@ -50,18 +69,8 @@ def get_beta_status() -> dict:
         # Dev mode — no stamp, not a beta build
         return {"is_beta": False, "expired": False, "expires_on": None, "days_remaining": None}
 
-    expires_on = build_date + timedelta(days=BETA_DAYS)
-
-    try:
-        today = _get_remote_date()
-    except Exception:
-        # If we can't reach the time API, allow usage (don't lock out)
-        return {
-            "is_beta": True,
-            "expired": False,
-            "expires_on": expires_on.isoformat(),
-            "days_remaining": None,
-        }
+    expires_on = _get_expiry(build_date)
+    today = _get_current_date()
 
     expired = today >= expires_on
     days_remaining = max(0, (expires_on - today).days)
@@ -72,3 +81,8 @@ def get_beta_status() -> dict:
         "expires_on": expires_on.isoformat(),
         "days_remaining": days_remaining,
     }
+
+
+def is_app_expired() -> bool:
+    """Return whether this stamped build has reached its expiry date."""
+    return bool(get_beta_status()["expired"])

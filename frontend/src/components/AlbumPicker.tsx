@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { getAlbums, ApiError } from '../hooks/useApi';
+import { APP_EXPIRED_CODE } from '../appExpiry';
 import type { AlbumInfo } from '../types/api';
 
 interface AlbumPickerProps {
   readonly onSessionExpired: () => void;
+  readonly onAppExpired: (message?: string) => void;
   readonly onStartSort: (albumIds: string[]) => void;
 }
 
-export default function AlbumPicker({ onSessionExpired, onStartSort }: AlbumPickerProps) {
+export default function AlbumPicker({ onSessionExpired, onAppExpired, onStartSort }: AlbumPickerProps) {
   const [albums, setAlbums] = useState<AlbumInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -15,6 +17,10 @@ export default function AlbumPicker({ onSessionExpired, onStartSort }: AlbumPick
 
   function handleApiError(err: unknown) {
     if (err instanceof ApiError) {
+      if (err.code === APP_EXPIRED_CODE) {
+        onAppExpired(err.message);
+        return;
+      }
       if (err.code === 'session_expired' || err.code === 'not_authenticated') {
         onSessionExpired();
         return;

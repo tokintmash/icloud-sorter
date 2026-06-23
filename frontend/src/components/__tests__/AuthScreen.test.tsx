@@ -26,13 +26,13 @@ beforeEach(() => {
 
 describe('AuthScreen', () => {
   it('renders login form by default', () => {
-    render(<AuthScreen onAuthenticated={vi.fn()} initialMode="login" />);
+    render(<AuthScreen onAuthenticated={vi.fn()} onAppExpired={vi.fn()} initialMode="login" />);
     expect(screen.getByLabelText(/apple id/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
   });
 
   it('renders 2FA form when initialMode is 2fa', () => {
-    render(<AuthScreen onAuthenticated={vi.fn()} initialMode="2fa" />);
+    render(<AuthScreen onAuthenticated={vi.fn()} onAppExpired={vi.fn()} initialMode="2fa" />);
     expect(screen.getByLabelText(/verification code/i)).toBeInTheDocument();
   });
 
@@ -40,7 +40,7 @@ describe('AuthScreen', () => {
     mockLogin.mockResolvedValue({ authenticated: false, requires_2fa: true });
     const user = userEvent.setup();
 
-    render(<AuthScreen onAuthenticated={vi.fn()} initialMode="login" />);
+    render(<AuthScreen onAuthenticated={vi.fn()} onAppExpired={vi.fn()} initialMode="login" />);
 
     await user.type(screen.getByLabelText(/apple id/i), 'test@test.com');
     await user.type(screen.getByLabelText(/password/i), 'password');
@@ -56,7 +56,7 @@ describe('AuthScreen', () => {
     const onAuth = vi.fn();
     const user = userEvent.setup();
 
-    render(<AuthScreen onAuthenticated={onAuth} initialMode="login" />);
+    render(<AuthScreen onAuthenticated={onAuth} onAppExpired={vi.fn()} initialMode="login" />);
 
     await user.type(screen.getByLabelText(/apple id/i), 'test@test.com');
     await user.type(screen.getByLabelText(/password/i), 'password');
@@ -71,7 +71,7 @@ describe('AuthScreen', () => {
     mockLogin.mockRejectedValue(new ApiError('invalid_credentials', 'Bad credentials'));
     const user = userEvent.setup();
 
-    render(<AuthScreen onAuthenticated={vi.fn()} initialMode="login" />);
+    render(<AuthScreen onAuthenticated={vi.fn()} onAppExpired={vi.fn()} initialMode="login" />);
 
     await user.type(screen.getByLabelText(/apple id/i), 'test@test.com');
     await user.type(screen.getByLabelText(/password/i), 'password');
@@ -83,7 +83,7 @@ describe('AuthScreen', () => {
   });
 
   it('disables button when fields are empty', () => {
-    render(<AuthScreen onAuthenticated={vi.fn()} initialMode="login" />);
+    render(<AuthScreen onAuthenticated={vi.fn()} onAppExpired={vi.fn()} initialMode="login" />);
     const button = screen.getByRole('button', { name: /sign in/i });
     expect(button).toBeDisabled();
   });

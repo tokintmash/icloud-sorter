@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getSession, getBetaStatus } from './hooks/useApi';
+import { getSession, getBetaStatus, ApiError } from './hooks/useApi';
+import { APP_EXPIRED_CODE, APP_EXPIRED_MESSAGE } from './appExpiry';
 import type { BetaStatusResponse } from './types/api';
 import AuthScreen from './components/AuthScreen';
 import ConsentScreen from './components/ConsentScreen';
@@ -26,7 +27,16 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('albums');
   const [sortState, setSortState] = useState<{ albumIds: string[] } | null>(null);
   const [betaStatus, setBetaStatus] = useState<BetaStatusResponse | null>(null); // BETA: remove for v1.0
+  const [expiredMessage, setExpiredMessage] = useState<string | null>(null);
   const [hasAcceptedConsent, setHasAcceptedConsent] = useState(false);
+
+  function handleAppExpired(message = APP_EXPIRED_MESSAGE) {
+    setExpiredMessage(message);
+    setAuthState('unauthenticated');
+    setAppleId(null);
+    setSortState(null);
+    setActiveTab('albums');
+  }
 
   useEffect(() => {
     async function init() {
@@ -36,6 +46,10 @@ export default function App() {
       try {
         const beta = await getBetaStatus();
         setBetaStatus(beta);
+        if (beta.expired) {
+          handleAppExpired(APP_EXPIRED_MESSAGE);
+          return;
+        }
       } catch {
         // If beta check fails, allow usage
       }
@@ -51,7 +65,11 @@ export default function App() {
         } else {
           setAuthState('unauthenticated');
         }
-      } catch {
+      } catch (err) {
+        if (err instanceof ApiError && err.code === APP_EXPIRED_CODE) {
+          handleAppExpired(err.message);
+          return;
+        }
         setAuthState('unauthenticated');
       }
     }
@@ -96,16 +114,7 @@ export default function App() {
     </div>
   ) : null;
 
-  if (authState === 'loading') {
-    return (
-      <div className="app-loading">
-        <span className="spinner" />
-        <p>Loading...</p>
-      </div>
-    );
-  }
-
-  if (betaStatus?.expired) {
+  if (expiredMessage || betaStatus?.expired) {
     return (
       <div className="app">
         <header className="app-header">
@@ -115,11 +124,19 @@ export default function App() {
           <div className="auth-screen">
             <div className="card" style={{ textAlign: 'center' }}>
               <h2>Beta Expired</h2>
-              <p>This beta version expired on {new Date(betaStatus.expires_on + 'T00:00:00').toLocaleDateString()}.</p>
-              <p>Please contact the developer for a new build.</p>
+              <p>{expiredMessage ?? APP_EXPIRED_MESSAGE}</p>
             </div>
           </div>
         </main>
+      </div>
+    );
+  }
+
+  if (authState === 'loading') {
+    return (
+      <div className="app-loading">
+        <span className="spinner" />
+        <p>Loading...</p>
       </div>
     );
   }
@@ -137,6 +154,7 @@ export default function App() {
           ) : (
             <AuthScreen
               onAuthenticated={handleAuthenticated}
+              onAppExpired={handleAppExpired}
               initialMode={authState === 'awaiting_2fa' ? '2fa' : 'login'}
             />
           )}
@@ -178,6 +196,7 @@ export default function App() {
         {activeTab === 'albums' && (
           <AlbumPicker
             onSessionExpired={handleSessionExpired}
+            onAppExpired={handleAppExpired}
             onStartSort={handleStartSort}
           />
         )}
@@ -186,6 +205,7 @@ export default function App() {
             albumIds={sortState.albumIds}
             onComplete={handleSortComplete}
             onSessionExpired={handleSessionExpired}
+            onAppExpired={handleAppExpired}
           />
         )}
         {activeTab === 'sorting' && !sortState && (
@@ -194,7 +214,7 @@ export default function App() {
             <p>Select albums and click &quot;Sort Selected&quot; to start sorting.</p>
           </div>
         )}
-        {activeTab === 'settings' && <Settings />}
+        {activeTab === 'settings' && <Settings onAppExpired={handleAppExpired} />}
       </main>
     </div>
   );

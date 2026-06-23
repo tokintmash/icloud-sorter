@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { login, submit2fa, ApiError } from '../hooks/useApi';
+import { APP_EXPIRED_CODE } from '../appExpiry';
 
 interface AuthScreenProps {
   readonly onAuthenticated: () => void;
+  readonly onAppExpired: (message?: string) => void;
   readonly initialMode: 'login' | '2fa';
 }
 
-export default function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
+export default function AuthScreen({ onAuthenticated, onAppExpired, initialMode }: AuthScreenProps) {
   const [mode, setMode] = useState<'login' | '2fa'>(initialMode);
   const [appleId, setAppleId] = useState('');
   const [password, setPassword] = useState('');
@@ -28,6 +30,10 @@ export default function AuthScreen({ onAuthenticated, initialMode }: AuthScreenP
       }
     } catch (err) {
       if (err instanceof ApiError) {
+        if (err.code === APP_EXPIRED_CODE) {
+          onAppExpired(err.message);
+          return;
+        }
         setError(err.message);
       } else {
         setError('An unexpected error occurred.');
@@ -49,6 +55,10 @@ export default function AuthScreen({ onAuthenticated, initialMode }: AuthScreenP
       }
     } catch (err) {
       if (err instanceof ApiError) {
+        if (err.code === APP_EXPIRED_CODE) {
+          onAppExpired(err.message);
+          return;
+        }
         setError(err.message);
       } else {
         setError('An unexpected error occurred.');

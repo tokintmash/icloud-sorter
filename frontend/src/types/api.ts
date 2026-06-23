@@ -1,6 +1,20 @@
 // Standard Error Response
+export type ErrorCode =
+  | 'invalid_credentials'
+  | '2fa_required'
+  | '2fa_failed'
+  | 'session_expired'
+  | 'not_authenticated'
+  | 'sort_in_progress'
+  | 'file_not_found'
+  | 'permission_denied'
+  | 'app_expired'
+  | 'internal_error'
+  | 'not_found'
+  | 'not_available';
+
 export interface ErrorResponse {
-  error: string;
+  error: ErrorCode;
   message: string;
 }
 
@@ -64,6 +78,8 @@ export interface SortProgressEvent {
   current_file: string;
   current_album: string;
   errors: SortError[];
+  error_code?: ErrorCode | null;
+  message?: string | null;
 }
 
 // Beta types

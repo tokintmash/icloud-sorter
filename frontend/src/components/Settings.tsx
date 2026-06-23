@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
 import { getSettings, updateSettings, ApiError } from '../hooks/useApi';
+import { APP_EXPIRED_CODE } from '../appExpiry';
 
-export default function Settings() {
+interface SettingsProps {
+  readonly onAppExpired: (message?: string) => void;
+}
+
+export default function Settings({ onAppExpired }: SettingsProps) {
   const duplicateHandlingLegendId = 'duplicateHandlingLegend';
   const moveOnlyLabelId = 'duplicateHandlingMoveOnlyLabel';
   const copyToEachLabelId = 'duplicateHandlingCopyToEachLabel';
@@ -22,6 +27,10 @@ export default function Settings() {
         setDuplicateHandling(settings.duplicate_handling);
       } catch (err) {
         if (err instanceof ApiError) {
+          if (err.code === APP_EXPIRED_CODE) {
+            onAppExpired(err.message);
+            return;
+          }
           setError(err.message);
         } else {
           setError('Failed to load settings.');
@@ -49,6 +58,10 @@ export default function Settings() {
       setSuccess('Settings saved successfully.');
     } catch (err) {
       if (err instanceof ApiError) {
+        if (err.code === APP_EXPIRED_CODE) {
+          onAppExpired(err.message);
+          return;
+        }
         setError(err.message);
       } else {
         setError('Failed to save settings.');
