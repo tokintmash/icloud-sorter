@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { startSort, ApiError } from '../hooks/useApi';
+import { startSort, getBetaStatus, ApiError } from '../hooks/useApi';
+import { APP_EXPIRED_CODE, APP_EXPIRED_MESSAGE } from '../appExpiry';
 import type { SortProgressEvent } from '../types/api';
 
 interface SortProgressProps {
   readonly albumIds: string[];
   readonly onComplete: () => void;
   readonly onSessionExpired: () => void;
+  readonly onAppExpired: (message?: string) => void;
 }
 
 function getProgressPercentage(progress: SortProgressEvent): number {
@@ -52,12 +54,14 @@ export default function SortProgress({
   albumIds,
   onComplete,
   onSessionExpired,
+  onAppExpired,
 }: SortProgressProps) {
   const [progress, setProgress] = useState<SortProgressEvent | null>(null);
   const [starting, setStarting] = useState(true);
   const [error, setError] = useState('');
   const [showAllErrors, setShowAllErrors] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const terminalReceivedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,17 +80,36 @@ export default function SortProgress({
           setProgress(data);
 
           if (data.status === 'complete' || data.status === 'error') {
+            terminalReceivedRef.current = true;
             es.close();
+            if (data.error_code === APP_EXPIRED_CODE) {
+              onAppExpired(data.message ?? APP_EXPIRED_MESSAGE);
+            }
           }
         };
 
-        es.onerror = () => {
-          // EventSource will auto-reconnect
+        es.onerror = async () => {
+          if (terminalReceivedRef.current) return;
+
+          try {
+            const beta = await getBetaStatus();
+            if (beta.expired) {
+              terminalReceivedRef.current = true;
+              es.close();
+              onAppExpired(APP_EXPIRED_MESSAGE);
+            }
+          } catch {
+            // EventSource will auto-reconnect when this is not an expiry refusal.
+          }
         };
       } catch (err) {
         if (cancelled) return;
         setStarting(false);
         if (err instanceof ApiError) {
+          if (err.code === APP_EXPIRED_CODE) {
+            onAppExpired(err.message);
+            return;
+          }
           if (err.code === 'session_expired' || err.code === 'not_authenticated') {
             onSessionExpired();
             return;

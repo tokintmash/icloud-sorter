@@ -272,3 +272,33 @@ def test_file_index_updated_after_move(tmp_db, tmp_path, sorter):
     total_failed = sum(s["failed_count"] for s in summaries)
     assert total_sorted == 1
     assert total_failed == 1
+
+
+def test_sort_stops_before_next_file_when_app_expires(tmp_db, tmp_path, sorter):
+    (tmp_path / "IMG_001.HEIC").write_text("data")
+    (tmp_path / "IMG_002.HEIC").write_text("data")
+    rows = _make_rows("a1", "Vacation", ["IMG_001.HEIC", "IMG_002.HEIC"], "Vacation")
+    replace_album_files(rows)
+
+    from backend.services import state_service
+    state_service.reset_album_files(["a1"])
+
+    with patch("backend.services.sorter_service.is_app_expired", side_effect=[False, True]):
+        sorter._run_sort(
+            state_service.get_pending_album_files(["a1"]),
+            str(tmp_path),
+        )
+
+    progress = sorter.get_progress()
+    summaries = get_album_summaries()
+
+    assert (tmp_path / "Vacation" / "IMG_001.HEIC").exists()
+    assert (tmp_path / "IMG_002.HEIC").exists()
+    assert not (tmp_path / "Vacation" / "IMG_002.HEIC").exists()
+    assert summaries[0]["sorted_count"] == 1
+    assert summaries[0]["failed_count"] == 1
+    assert progress["status"] == "error"
+    assert progress["error_code"] == "app_expired"
+    assert progress["message"] == "This beta has expired. Contact the author of the app to get an up-to-date version."
+    assert progress["completed_files"] == 1
+    assert progress["failed_files"] == 1

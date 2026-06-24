@@ -19,3 +19,11 @@ def tmp_db(tmp_path):
     with patch("backend.models.db.STATE_DB_PATH", db_path), \
          patch("backend.config.STATE_DB_PATH", db_path):
         yield db_path
+
+
+@pytest.fixture(autouse=True)
+def active_build_by_default():
+    """Keep tests independent from the local build stamp unless expiry is under test."""
+    with patch("backend.app.is_app_expired", return_value=False), \
+         patch("backend.services.sorter_service.is_app_expired", return_value=False):
+        yield

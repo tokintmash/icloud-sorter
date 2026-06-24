@@ -6,6 +6,7 @@ import type { SortProgressEvent } from '../../types/api';
 
 vi.mock('../../hooks/useApi', () => ({
   startSort: vi.fn(),
+  getBetaStatus: vi.fn(),
   ApiError: class ApiError extends Error {
     code: string;
     constructor(code: string, message: string) {
@@ -16,9 +17,10 @@ vi.mock('../../hooks/useApi', () => ({
   },
 }));
 
-import { startSort, ApiError } from '../../hooks/useApi';
+import { startSort, getBetaStatus, ApiError } from '../../hooks/useApi';
 
 const mockStartSort = vi.mocked(startSort);
+const mockGetBetaStatus = vi.mocked(getBetaStatus);
 
 class MockEventSource {
   static latest: MockEventSource | null = null;
@@ -43,6 +45,12 @@ function getMockEventSource(): MockEventSource {
 beforeEach(() => {
   vi.clearAllMocks();
   MockEventSource.latest = null;
+  mockGetBetaStatus.mockResolvedValue({
+    is_beta: true,
+    expired: false,
+    expires_on: '2026-01-01',
+    days_remaining: 1,
+  });
   vi.stubGlobal('EventSource', MockEventSource);
 });
 
@@ -59,14 +67,14 @@ function sendSSEEvent(data: SortProgressEvent) {
 describe('SortProgress', () => {
   it('shows starting spinner initially', () => {
     mockStartSort.mockReturnValue(new Promise(() => {})); // never resolves
-    render(<SortProgress albumIds={['a1']} onComplete={vi.fn()} onSessionExpired={vi.fn()} />);
+    render(<SortProgress albumIds={['a1']} onComplete={vi.fn()} onSessionExpired={vi.fn()} onAppExpired={vi.fn()} />);
     expect(screen.getByText(/starting sort/i)).toBeInTheDocument();
   });
 
   it('shows progress bar after SSE events', async () => {
     mockStartSort.mockResolvedValue({ total_files: 10 });
 
-    render(<SortProgress albumIds={['a1']} onComplete={vi.fn()} onSessionExpired={vi.fn()} />);
+    render(<SortProgress albumIds={['a1']} onComplete={vi.fn()} onSessionExpired={vi.fn()} onAppExpired={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.queryByText(/starting sort/i)).not.toBeInTheDocument();
@@ -88,7 +96,7 @@ describe('SortProgress', () => {
   it('shows current file and album', async () => {
     mockStartSort.mockResolvedValue({ total_files: 10 });
 
-    render(<SortProgress albumIds={['a1']} onComplete={vi.fn()} onSessionExpired={vi.fn()} />);
+    render(<SortProgress albumIds={['a1']} onComplete={vi.fn()} onSessionExpired={vi.fn()} onAppExpired={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.queryByText(/starting sort/i)).not.toBeInTheDocument();
@@ -111,7 +119,7 @@ describe('SortProgress', () => {
   it('shows completion summary', async () => {
     mockStartSort.mockResolvedValue({ total_files: 10 });
 
-    render(<SortProgress albumIds={['a1']} onComplete={vi.fn()} onSessionExpired={vi.fn()} />);
+    render(<SortProgress albumIds={['a1']} onComplete={vi.fn()} onSessionExpired={vi.fn()} onAppExpired={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.queryByText(/starting sort/i)).not.toBeInTheDocument();
@@ -136,7 +144,7 @@ describe('SortProgress', () => {
     const onComplete = vi.fn();
     const user = userEvent.setup();
 
-    render(<SortProgress albumIds={['a1']} onComplete={onComplete} onSessionExpired={vi.fn()} />);
+    render(<SortProgress albumIds={['a1']} onComplete={onComplete} onSessionExpired={vi.fn()} onAppExpired={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.queryByText(/starting sort/i)).not.toBeInTheDocument();
@@ -159,7 +167,7 @@ describe('SortProgress', () => {
   it('handles startSort failure with error message', async () => {
     mockStartSort.mockRejectedValue(new ApiError('file_not_found', 'iCloud folder not found'));
 
-    render(<SortProgress albumIds={['a1']} onComplete={vi.fn()} onSessionExpired={vi.fn()} />);
+    render(<SortProgress albumIds={['a1']} onComplete={vi.fn()} onSessionExpired={vi.fn()} onAppExpired={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByText(/icloud folder not found/i)).toBeInTheDocument();
@@ -170,7 +178,7 @@ describe('SortProgress', () => {
   it('shows error list with show all toggle for >5 errors', async () => {
     mockStartSort.mockResolvedValue({ total_files: 10 });
 
-    render(<SortProgress albumIds={['a1']} onComplete={vi.fn()} onSessionExpired={vi.fn()} />);
+    render(<SortProgress albumIds={['a1']} onComplete={vi.fn()} onSessionExpired={vi.fn()} onAppExpired={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.queryByText(/starting sort/i)).not.toBeInTheDocument();
@@ -194,5 +202,31 @@ describe('SortProgress', () => {
 
     // Should show only 5 initially
     expect(screen.getByText(/show all 7 errors/i)).toBeInTheDocument();
+  });
+
+  it('checks expiry status when EventSource fails and routes expired builds', async () => {
+    mockStartSort.mockResolvedValue({ total_files: 10 });
+    mockGetBetaStatus.mockResolvedValue({
+      is_beta: true,
+      expired: true,
+      expires_on: '2026-01-01',
+      days_remaining: 0,
+    });
+    const onAppExpired = vi.fn();
+
+    render(<SortProgress albumIds={['a1']} onComplete={vi.fn()} onSessionExpired={vi.fn()} onAppExpired={onAppExpired} />);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/starting sort/i)).not.toBeInTheDocument();
+    });
+
+    act(() => {
+      getMockEventSource().onerror?.();
+    });
+
+    await waitFor(() => {
+      expect(onAppExpired).toHaveBeenCalledWith('This beta has expired. Contact the author of the app to get an up-to-date version.');
+    });
+    expect(getMockEventSource().close).toHaveBeenCalled();
   });
 });

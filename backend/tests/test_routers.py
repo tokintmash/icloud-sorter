@@ -168,6 +168,37 @@ def test_sort_progress_sse_stream(mock_sorter, client):
     assert event_data["total_files"] == 10
 
 
+@patch("backend.routers.sort.sorter_service")
+def test_sort_progress_sse_stream_includes_expiry_terminal_error(mock_sorter, client):
+    mock_sorter.is_running.return_value = True
+    mock_sorter.get_progress.return_value = {
+        "status": "error",
+        "total_files": 2,
+        "completed_files": 1,
+        "failed_files": 1,
+        "current_file": "",
+        "current_album": "",
+        "errors": [
+            {
+                "filename": "",
+                "error": "This beta has expired. Contact the author of the app to get an up-to-date version.",
+                "album": "",
+            }
+        ],
+        "error_code": "app_expired",
+        "message": "This beta has expired. Contact the author of the app to get an up-to-date version.",
+    }
+
+    resp = client.get("/api/sort/progress")
+
+    assert resp.status_code == 200
+    data_line = [line for line in resp.text.strip().split("\n") if line.startswith("data: ")][0]
+    event_data = json.loads(data_line[6:])
+    assert event_data["status"] == "error"
+    assert event_data["error_code"] == "app_expired"
+    assert event_data["message"] == "This beta has expired. Contact the author of the app to get an up-to-date version."
+
+
 # --- Settings ---
 
 @patch("backend.routers.settings.load_settings")

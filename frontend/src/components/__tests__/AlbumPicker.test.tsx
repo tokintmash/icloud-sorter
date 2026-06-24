@@ -34,7 +34,7 @@ describe('AlbumPicker', () => {
   it('renders loading spinner then album list', async () => {
     mockGetAlbums.mockResolvedValue(sampleAlbums);
 
-    render(<AlbumPicker onSessionExpired={vi.fn()} onStartSort={vi.fn()} />);
+    render(<AlbumPicker onSessionExpired={vi.fn()} onAppExpired={vi.fn()} onStartSort={vi.fn()} />);
     expect(screen.getByText(/loading albums/i)).toBeInTheDocument();
 
     await waitFor(() => {
@@ -47,7 +47,7 @@ describe('AlbumPicker', () => {
     mockGetAlbums.mockResolvedValue(sampleAlbums);
     const user = userEvent.setup();
 
-    render(<AlbumPicker onSessionExpired={vi.fn()} onStartSort={vi.fn()} />);
+    render(<AlbumPicker onSessionExpired={vi.fn()} onAppExpired={vi.fn()} onStartSort={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByText('Vacation')).toBeInTheDocument();
@@ -65,7 +65,7 @@ describe('AlbumPicker', () => {
     mockGetAlbums.mockResolvedValue(sampleAlbums);
     const user = userEvent.setup();
 
-    render(<AlbumPicker onSessionExpired={vi.fn()} onStartSort={vi.fn()} />);
+    render(<AlbumPicker onSessionExpired={vi.fn()} onAppExpired={vi.fn()} onStartSort={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByText('Vacation')).toBeInTheDocument();
@@ -82,7 +82,7 @@ describe('AlbumPicker', () => {
   it('sort button disabled when none selected', async () => {
     mockGetAlbums.mockResolvedValue(sampleAlbums);
 
-    render(<AlbumPicker onSessionExpired={vi.fn()} onStartSort={vi.fn()} />);
+    render(<AlbumPicker onSessionExpired={vi.fn()} onAppExpired={vi.fn()} onStartSort={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByText('Vacation')).toBeInTheDocument();
@@ -97,7 +97,7 @@ describe('AlbumPicker', () => {
     const onStartSort = vi.fn();
     const user = userEvent.setup();
 
-    render(<AlbumPicker onSessionExpired={vi.fn()} onStartSort={onStartSort} />);
+    render(<AlbumPicker onSessionExpired={vi.fn()} onAppExpired={vi.fn()} onStartSort={onStartSort} />);
 
     await waitFor(() => {
       expect(screen.getByText('Vacation')).toBeInTheDocument();
@@ -113,7 +113,7 @@ describe('AlbumPicker', () => {
   it('shows error and retry on API failure', async () => {
     mockGetAlbums.mockRejectedValue(new ApiError('internal_error', 'Server error'));
 
-    render(<AlbumPicker onSessionExpired={vi.fn()} onStartSort={vi.fn()} />);
+    render(<AlbumPicker onSessionExpired={vi.fn()} onAppExpired={vi.fn()} onStartSort={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByText(/server error/i)).toBeInTheDocument();
@@ -125,7 +125,7 @@ describe('AlbumPicker', () => {
     mockGetAlbums.mockRejectedValue(new ApiError('not_authenticated', 'Not authenticated'));
     const onSessionExpired = vi.fn();
 
-    render(<AlbumPicker onSessionExpired={onSessionExpired} onStartSort={vi.fn()} />);
+    render(<AlbumPicker onSessionExpired={onSessionExpired} onAppExpired={vi.fn()} onStartSort={vi.fn()} />);
 
     await waitFor(() => {
       expect(onSessionExpired).toHaveBeenCalled();

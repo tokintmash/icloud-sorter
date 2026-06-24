@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from backend.beta import APP_EXPIRED_ERROR, APP_EXPIRED_MESSAGE, is_app_expired
 from backend.logging_config import configure_logging
 from backend.models.db import init_db
 from backend.routers import auth, albums, sort, settings
@@ -45,6 +46,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+EXPIRY_ALLOWLIST = {"/api/app/beta", "/api/app/health", "/api/app/quit"}
+
+
+@app.middleware("http")
+async def expiry_guard(request: Request, call_next):
+    path = request.url.path
+    if request.method != "OPTIONS" and path.startswith("/api/") and path not in EXPIRY_ALLOWLIST:
+        if is_app_expired():
+            return JSONResponse(
+                status_code=403,
+                content={"error": APP_EXPIRED_ERROR, "message": APP_EXPIRED_MESSAGE},
+            )
+
+    return await call_next(request)
 
 app.include_router(auth.router)
 app.include_router(albums.router)

@@ -7,13 +7,14 @@ import type {
   SettingsUpdateRequest,
   SortStartResponse,
   ErrorResponse,
+  ErrorCode,
   BetaStatusResponse,
 } from '../types/api';
 
 export class ApiError extends Error {
-  code: string;
+  code: ErrorCode;
 
-  constructor(code: string, message: string) {
+  constructor(code: ErrorCode, message: string) {
     super(message);
     this.code = code;
     this.name = 'ApiError';

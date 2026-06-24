@@ -72,6 +72,8 @@ class SortProgressEvent(BaseModel):
     current_file: str
     current_album: str
     errors: list[SortError]
+    error_code: Optional[str] = None
+    message: Optional[str] = None
 
 
 # --- Settings ---
