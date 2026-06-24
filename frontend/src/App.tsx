@@ -80,7 +80,11 @@ export default function App() {
     setAuthState('authenticated');
     getSession()
       .then((s) => setAppleId(s.apple_id))
-      .catch(() => {});
+      .catch((err: unknown) => {
+        if (err instanceof ApiError && err.code === APP_EXPIRED_CODE) {
+          handleAppExpired(err.message);
+        }
+      });
   }
 
   function handleAcceptConsent() {

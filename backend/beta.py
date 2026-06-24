@@ -14,6 +14,9 @@ from datetime import date, datetime, timedelta, timezone
 BETA_DAYS = 10
 APP_EXPIRED_ERROR = "app_expired"
 APP_EXPIRED_MESSAGE = "This beta has expired. Contact the author of the app to get an up-to-date version."
+_CURRENT_DATE_CACHE_TTL = timedelta(minutes=15)
+_cached_current_date: date | None = None
+_cached_current_date_at: datetime | None = None
 
 # WorldTimeAPI — open source, no API key required
 _TIME_API_URL = "https://worldtimeapi.org/api/timezone/Etc/UTC"
@@ -40,22 +43,55 @@ def _get_remote_date() -> date:
 
 def _get_local_utc_date() -> date:
     """Return today's local UTC date."""
-    return datetime.now(timezone.utc).date()
+    return _get_utc_now().date()
 
 
-def _get_current_date() -> date:
-    """Return remote UTC date, falling back to local UTC if lookup fails."""
+def _get_utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _get_cached_current_date(now: datetime) -> date | None:
+    if _cached_current_date is None or _cached_current_date_at is None:
+        return None
+
+    if now - _cached_current_date_at >= _CURRENT_DATE_CACHE_TTL:
+        return None
+
+    return _cached_current_date
+
+
+def _set_cached_current_date(today: date, now: datetime) -> None:
+    global _cached_current_date, _cached_current_date_at
+    _cached_current_date = today
+    _cached_current_date_at = now
+
+
+def _get_current_date(refresh_remote: bool) -> date:
+    """Return current UTC date without doing remote I/O on hot paths."""
+    now = _get_utc_now()
+    local_today = _get_local_utc_date()
+    cached_today = _get_cached_current_date(now)
+
+    if cached_today is not None:
+        return max(cached_today, local_today)
+
+    if not refresh_remote:
+        return local_today
+
     try:
-        return _get_remote_date()
+        today = _get_remote_date()
     except Exception:
-        return _get_local_utc_date()
+        today = local_today
+
+    _set_cached_current_date(today, now)
+    return today
 
 
 def _get_expiry(build_date: date) -> date:
     return build_date + timedelta(days=BETA_DAYS)
 
 
-def get_beta_status() -> dict:
+def get_beta_status(refresh_remote: bool = True) -> dict:
     """Return beta status info.
 
     Returns dict with keys:
@@ -70,7 +106,7 @@ def get_beta_status() -> dict:
         return {"is_beta": False, "expired": False, "expires_on": None, "days_remaining": None}
 
     expires_on = _get_expiry(build_date)
-    today = _get_current_date()
+    today = _get_current_date(refresh_remote)
 
     expired = today >= expires_on
     days_remaining = max(0, (expires_on - today).days)
@@ -84,5 +120,5 @@ def get_beta_status() -> dict:
 
 
 def is_app_expired() -> bool:
-    """Return whether this stamped build has reached its expiry date."""
-    return bool(get_beta_status()["expired"])
+    """Return whether this stamped build has expired without remote I/O."""
+    return bool(get_beta_status(refresh_remote=False)["expired"])
