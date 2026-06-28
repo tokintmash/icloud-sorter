@@ -5,11 +5,11 @@ import type { BetaStatusResponse } from './types/api';
 import AuthScreen from './components/AuthScreen';
 import ConsentScreen from './components/ConsentScreen';
 import AlbumPicker from './components/AlbumPicker';
-import SortProgress from './components/SortProgress';
 import Settings from './components/Settings';
 
 type AuthState = 'loading' | 'unauthenticated' | 'awaiting_2fa' | 'authenticated';
-type Tab = 'albums' | 'sorting' | 'settings';
+type Tab = 'albums' | 'settings';
+type SortState = { albumIds: string[]; hasStarted: boolean };
 
 export const DATA_ACCESS_CONSENT_STORAGE_KEY = 'icloud-sorter:data-access-consent:v1';
 
@@ -25,7 +25,7 @@ export default function App() {
   const [authState, setAuthState] = useState<AuthState>('loading');
   const [appleId, setAppleId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('albums');
-  const [sortState, setSortState] = useState<{ albumIds: string[] } | null>(null);
+  const [sortState, setSortState] = useState<SortState | null>(null);
   const [betaStatus, setBetaStatus] = useState<BetaStatusResponse | null>(null); // BETA: remove for v1.0
   const [expiredMessage, setExpiredMessage] = useState<string | null>(null);
   const [hasAcceptedConsent, setHasAcceptedConsent] = useState(false);
@@ -103,13 +103,16 @@ export default function App() {
   }
 
   function handleStartSort(albumIds: string[]) {
-    setSortState({ albumIds });
-    setActiveTab('sorting');
+    setSortState((current) => current ?? { albumIds, hasStarted: false });
+    setActiveTab('albums');
+  }
+
+  function handleSortStarted() {
+    setSortState((current) => current ? { ...current, hasStarted: true } : current);
   }
 
   function handleSortComplete() {
     setSortState(null);
-    setActiveTab('albums');
   }
 
   const betaBanner = betaStatus?.is_beta && !betaStatus.expired && betaStatus.expires_on ? (
@@ -184,12 +187,6 @@ export default function App() {
           Albums
         </button>
         <button
-          className={activeTab === 'sorting' ? 'active' : ''}
-          onClick={() => setActiveTab('sorting')}
-        >
-          Sorting
-        </button>
-        <button
           className={activeTab === 'settings' ? 'active' : ''}
           onClick={() => setActiveTab('settings')}
         >
@@ -197,27 +194,16 @@ export default function App() {
         </button>
       </nav>
       <main>
-        {activeTab === 'albums' && (
+        <div hidden={activeTab !== 'albums'}>
           <AlbumPicker
             onSessionExpired={handleSessionExpired}
             onAppExpired={handleAppExpired}
             onStartSort={handleStartSort}
+            activeSort={sortState}
+            onSortStarted={handleSortStarted}
+            onSortComplete={handleSortComplete}
           />
-        )}
-        {activeTab === 'sorting' && sortState && (
-          <SortProgress
-            albumIds={sortState.albumIds}
-            onComplete={handleSortComplete}
-            onSessionExpired={handleSessionExpired}
-            onAppExpired={handleAppExpired}
-          />
-        )}
-        {activeTab === 'sorting' && !sortState && (
-          <div className="sort-progress">
-            <h2>Sorting</h2>
-            <p>Select albums and click &quot;Sort Selected&quot; to start sorting.</p>
-          </div>
-        )}
+        </div>
         {activeTab === 'settings' && <Settings onAppExpired={handleAppExpired} />}
       </main>
     </div>

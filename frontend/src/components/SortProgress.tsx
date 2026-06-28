@@ -5,6 +5,8 @@ import type { SortProgressEvent } from '../types/api';
 
 interface SortProgressProps {
   readonly albumIds: string[];
+  readonly hasStarted?: boolean;
+  readonly onStarted?: () => void;
   readonly onComplete: () => void;
   readonly onSessionExpired: () => void;
   readonly onAppExpired: (message?: string) => void;
@@ -50,14 +52,20 @@ function getCompletionHeading(status: SortProgressEvent['status']): string {
   return 'Sort Error';
 }
 
+function isTerminalProgress(progress: SortProgressEvent): boolean {
+  return progress.status === 'complete' || progress.status === 'error';
+}
+
 export default function SortProgress({
   albumIds,
+  hasStarted = false,
+  onStarted,
   onComplete,
   onSessionExpired,
   onAppExpired,
 }: SortProgressProps) {
   const [progress, setProgress] = useState<SortProgressEvent | null>(null);
-  const [starting, setStarting] = useState(true);
+  const [starting, setStarting] = useState(!hasStarted);
   const [error, setError] = useState('');
   const [showAllErrors, setShowAllErrors] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -66,58 +74,81 @@ export default function SortProgress({
   useEffect(() => {
     let cancelled = false;
 
+    function handleStartError(err: unknown) {
+      if (cancelled) return;
+      setStarting(false);
+
+      if (!(err instanceof ApiError)) {
+        setError('Failed to start sorting.');
+        return;
+      }
+
+      if (err.code === APP_EXPIRED_CODE) {
+        onAppExpired(err.message);
+        return;
+      }
+
+      if (err.code === 'session_expired' || err.code === 'not_authenticated') {
+        onSessionExpired();
+        return;
+      }
+
+      setError(err.message);
+    }
+
+    function handleProgressMessage(es: EventSource, event: MessageEvent) {
+      const data = JSON.parse(event.data) as SortProgressEvent;
+      setProgress(data);
+
+      if (!isTerminalProgress(data)) {
+        return;
+      }
+
+      terminalReceivedRef.current = true;
+      es.close();
+
+      if (data.error_code === APP_EXPIRED_CODE) {
+        onAppExpired(data.message ?? APP_EXPIRED_MESSAGE);
+      }
+    }
+
+    async function handleProgressError(es: EventSource) {
+      if (terminalReceivedRef.current) return;
+
+      try {
+        const beta = await getBetaStatus();
+        if (beta.expired) {
+          terminalReceivedRef.current = true;
+          es.close();
+          onAppExpired(APP_EXPIRED_MESSAGE);
+        }
+      } catch {
+        // EventSource will auto-reconnect when this is not an expiry refusal.
+      }
+    }
+
+    function openProgressStream() {
+      const es = new EventSource('/api/sort/progress');
+      eventSourceRef.current = es;
+      es.onmessage = (event) => handleProgressMessage(es, event);
+      es.onerror = () => {
+        void handleProgressError(es);
+      };
+    }
+
     async function init() {
       try {
-        await startSort(albumIds);
-        if (cancelled) return;
-        setStarting(false);
-
-        const es = new EventSource('/api/sort/progress');
-        eventSourceRef.current = es;
-
-        es.onmessage = (event) => {
-          const data = JSON.parse(event.data) as SortProgressEvent;
-          setProgress(data);
-
-          if (data.status === 'complete' || data.status === 'error') {
-            terminalReceivedRef.current = true;
-            es.close();
-            if (data.error_code === APP_EXPIRED_CODE) {
-              onAppExpired(data.message ?? APP_EXPIRED_MESSAGE);
-            }
-          }
-        };
-
-        es.onerror = async () => {
-          if (terminalReceivedRef.current) return;
-
-          try {
-            const beta = await getBetaStatus();
-            if (beta.expired) {
-              terminalReceivedRef.current = true;
-              es.close();
-              onAppExpired(APP_EXPIRED_MESSAGE);
-            }
-          } catch {
-            // EventSource will auto-reconnect when this is not an expiry refusal.
-          }
-        };
-      } catch (err) {
-        if (cancelled) return;
-        setStarting(false);
-        if (err instanceof ApiError) {
-          if (err.code === APP_EXPIRED_CODE) {
-            onAppExpired(err.message);
-            return;
-          }
-          if (err.code === 'session_expired' || err.code === 'not_authenticated') {
-            onSessionExpired();
-            return;
-          }
-          setError(err.message);
-        } else {
-          setError('Failed to start sorting.');
+        if (!hasStarted) {
+          await startSort(albumIds);
+          if (cancelled) return;
+          onStarted?.();
         }
+
+        if (cancelled) return;
+        setStarting(false);
+        openProgressStream();
+      } catch (err) {
+        handleStartError(err);
       }
     }
 
@@ -167,7 +198,7 @@ export default function SortProgress({
     );
   }
 
-  const isTerminal = progress.status === 'complete' || progress.status === 'error';
+  const isTerminal = isTerminalProgress(progress);
   const percentage = getProgressPercentage(progress);
   const barClass = getProgressBarClass(progress.status);
   const statusLabel = getStatusLabel(progress.status);

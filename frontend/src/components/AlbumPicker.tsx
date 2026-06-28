@@ -2,18 +2,35 @@ import { useState, useEffect } from 'react';
 import { getAlbums, ApiError } from '../hooks/useApi';
 import { APP_EXPIRED_CODE } from '../appExpiry';
 import type { AlbumInfo } from '../types/api';
+import SortProgress from './SortProgress';
+
+interface ActiveSortState {
+  readonly albumIds: string[];
+  readonly hasStarted: boolean;
+}
 
 interface AlbumPickerProps {
   readonly onSessionExpired: () => void;
   readonly onAppExpired: (message?: string) => void;
   readonly onStartSort: (albumIds: string[]) => void;
+  readonly activeSort: ActiveSortState | null;
+  readonly onSortStarted: () => void;
+  readonly onSortComplete: () => void;
 }
 
-export default function AlbumPicker({ onSessionExpired, onAppExpired, onStartSort }: AlbumPickerProps) {
+export default function AlbumPicker({
+  onSessionExpired,
+  onAppExpired,
+  onStartSort,
+  activeSort,
+  onSortStarted,
+  onSortComplete,
+}: AlbumPickerProps) {
   const [albums, setAlbums] = useState<AlbumInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedAlbums, setSelectedAlbums] = useState<Set<string>>(new Set());
+  const sortActive = activeSort !== null;
 
   function handleApiError(err: unknown) {
     if (err instanceof ApiError) {
@@ -99,22 +116,35 @@ export default function AlbumPicker({ onSessionExpired, onAppExpired, onStartSor
       ) : (
         <>
           <div className="album-toolbar">
-            <button className="btn-secondary" onClick={selectAll}>
+            <button className="btn-secondary" onClick={selectAll} disabled={sortActive}>
               Select All
             </button>
-            <button className="btn-secondary" onClick={deselectAll}>
+            <button className="btn-secondary" onClick={deselectAll} disabled={sortActive}>
               Deselect All
             </button>
-            <button className="btn-secondary" onClick={fetchAlbums}>
+            <button className="btn-secondary" onClick={fetchAlbums} disabled={sortActive}>
               Refresh from iCloud
             </button>
             <button
-              disabled={selectedAlbums.size === 0}
+              disabled={selectedAlbums.size === 0 || sortActive}
               onClick={() => onStartSort(Array.from(selectedAlbums))}
             >
-              Sort Selected ({selectedAlbums.size})
+              {sortActive ? 'Sorting...' : `Sort Selected (${selectedAlbums.size})`}
             </button>
           </div>
+          {activeSort && (
+            <section className="inline-sort-progress" aria-label="Sort progress">
+              <SortProgress
+                key={JSON.stringify(activeSort.albumIds)}
+                albumIds={activeSort.albumIds}
+                hasStarted={activeSort.hasStarted}
+                onStarted={onSortStarted}
+                onComplete={onSortComplete}
+                onSessionExpired={onSessionExpired}
+                onAppExpired={onAppExpired}
+              />
+            </section>
+          )}
           <div className="album-list">
             {albums.map((album) => (
               <div key={album.id} className="card album-card">
@@ -124,6 +154,7 @@ export default function AlbumPicker({ onSessionExpired, onAppExpired, onStartSor
                       type="checkbox"
                       className="album-select-checkbox"
                       checked={selectedAlbums.has(album.id)}
+                      disabled={sortActive}
                       onChange={() => toggleSelection(album.id)}
                     />
                     <div className="album-info">

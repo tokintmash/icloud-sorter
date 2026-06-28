@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { ComponentProps } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AlbumPicker from '../AlbumPicker';
+
+vi.mock('../SortProgress', () => ({
+  default: () => <div>Sort progress</div>,
+}));
 
 vi.mock('../../hooks/useApi', () => ({
   getAlbums: vi.fn(),
@@ -26,6 +31,20 @@ const sampleAlbums = {
   ],
 };
 
+function renderAlbumPicker(props?: Partial<ComponentProps<typeof AlbumPicker>>) {
+  return render(
+    <AlbumPicker
+      onSessionExpired={vi.fn()}
+      onAppExpired={vi.fn()}
+      onStartSort={vi.fn()}
+      activeSort={null}
+      onSortStarted={vi.fn()}
+      onSortComplete={vi.fn()}
+      {...props}
+    />,
+  );
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -34,7 +53,7 @@ describe('AlbumPicker', () => {
   it('renders loading spinner then album list', async () => {
     mockGetAlbums.mockResolvedValue(sampleAlbums);
 
-    render(<AlbumPicker onSessionExpired={vi.fn()} onAppExpired={vi.fn()} onStartSort={vi.fn()} />);
+    renderAlbumPicker();
     expect(screen.getByText(/loading albums/i)).toBeInTheDocument();
 
     await waitFor(() => {
@@ -47,7 +66,7 @@ describe('AlbumPicker', () => {
     mockGetAlbums.mockResolvedValue(sampleAlbums);
     const user = userEvent.setup();
 
-    render(<AlbumPicker onSessionExpired={vi.fn()} onAppExpired={vi.fn()} onStartSort={vi.fn()} />);
+    renderAlbumPicker();
 
     await waitFor(() => {
       expect(screen.getByText('Vacation')).toBeInTheDocument();
@@ -65,7 +84,7 @@ describe('AlbumPicker', () => {
     mockGetAlbums.mockResolvedValue(sampleAlbums);
     const user = userEvent.setup();
 
-    render(<AlbumPicker onSessionExpired={vi.fn()} onAppExpired={vi.fn()} onStartSort={vi.fn()} />);
+    renderAlbumPicker();
 
     await waitFor(() => {
       expect(screen.getByText('Vacation')).toBeInTheDocument();
@@ -82,7 +101,7 @@ describe('AlbumPicker', () => {
   it('sort button disabled when none selected', async () => {
     mockGetAlbums.mockResolvedValue(sampleAlbums);
 
-    render(<AlbumPicker onSessionExpired={vi.fn()} onAppExpired={vi.fn()} onStartSort={vi.fn()} />);
+    renderAlbumPicker();
 
     await waitFor(() => {
       expect(screen.getByText('Vacation')).toBeInTheDocument();
@@ -97,7 +116,7 @@ describe('AlbumPicker', () => {
     const onStartSort = vi.fn();
     const user = userEvent.setup();
 
-    render(<AlbumPicker onSessionExpired={vi.fn()} onAppExpired={vi.fn()} onStartSort={onStartSort} />);
+    renderAlbumPicker({ onStartSort });
 
     await waitFor(() => {
       expect(screen.getByText('Vacation')).toBeInTheDocument();
@@ -113,7 +132,7 @@ describe('AlbumPicker', () => {
   it('shows error and retry on API failure', async () => {
     mockGetAlbums.mockRejectedValue(new ApiError('internal_error', 'Server error'));
 
-    render(<AlbumPicker onSessionExpired={vi.fn()} onAppExpired={vi.fn()} onStartSort={vi.fn()} />);
+    renderAlbumPicker();
 
     await waitFor(() => {
       expect(screen.getByText(/server error/i)).toBeInTheDocument();
@@ -125,10 +144,24 @@ describe('AlbumPicker', () => {
     mockGetAlbums.mockRejectedValue(new ApiError('not_authenticated', 'Not authenticated'));
     const onSessionExpired = vi.fn();
 
-    render(<AlbumPicker onSessionExpired={onSessionExpired} onAppExpired={vi.fn()} onStartSort={vi.fn()} />);
+    renderAlbumPicker({ onSessionExpired });
 
     await waitFor(() => {
       expect(onSessionExpired).toHaveBeenCalled();
     });
+  });
+
+  it('disables album actions during an active inline sort', async () => {
+    mockGetAlbums.mockResolvedValue(sampleAlbums);
+
+    renderAlbumPicker({ activeSort: { albumIds: ['a1'], hasStarted: true } });
+
+    await waitFor(() => {
+      expect(screen.getByText('Vacation')).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: /sorting/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /refresh from icloud/i })).toBeDisabled();
+    screen.getAllByRole('checkbox').forEach((checkbox) => expect(checkbox).toBeDisabled());
   });
 });
