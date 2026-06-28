@@ -1,8 +1,9 @@
 ## 1. Frontend Flow
 
-- [ ] 1.1 Remove the dedicated `sorting` tab from authenticated navigation and eliminate the empty sorting-tab placeholder state.
-- [ ] 1.2 Update sort start handling so clicking `Sort Selected` keeps the user on the albums tab and records the selected album IDs for inline progress.
-- [ ] 1.3 Ensure settings remains accessible without changing authentication, consent, expiry, or API error handling flows.
+- [ ] 1.1 Load and apply the `ui-ux-pro-max` skill before editing UI code; inspect the current album picker, toolbar, progress, mobile behavior, focus states, and visual tokens.
+- [ ] 1.2 Remove the dedicated `sorting` tab from authenticated navigation and eliminate the empty sorting-tab placeholder state.
+- [ ] 1.3 Update sort start handling so clicking `Sort Selected` keeps the user on the albums tab and records the selected album IDs for inline progress.
+- [ ] 1.4 Ensure settings remains accessible without changing authentication, consent, expiry, or API error handling flows.
 
 ## 2. Inline Progress UI
 
@@ -14,5 +15,6 @@
 ## 3. Styling And Verification
 
 - [ ] 3.1 Adjust CSS so inline progress appears as a clear full-width section or card near the album toolbar on desktop and mobile.
-- [ ] 3.2 Verify album selection, sort start, progress updates, terminal completion, error display, settings navigation, and expiry/session handling still behave correctly.
-- [ ] 3.3 Run `cd frontend && npm run build` and fix any TypeScript or build failures.
+- [ ] 3.2 Use the `ui-ux-pro-max` checklist to verify hierarchy, one clear primary action, responsive behavior at mobile and desktop widths, keyboard/focus behavior, disabled/loading/error states, and contrast within the existing design system.
+- [ ] 3.3 Verify album selection, sort start, progress updates, terminal completion, error display, settings navigation, and expiry/session handling still behave correctly.
+- [ ] 3.4 Run `cd frontend && npm run build` and fix any TypeScript or build failures.

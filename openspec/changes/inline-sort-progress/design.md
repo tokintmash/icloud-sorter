@@ -38,9 +38,14 @@ The change is purely frontend presentation. The backend sort start endpoint, SSE
   - Rationale: Refreshing albums or starting another sort during an active sort can confuse the displayed progress and backend state. The UI should make the active operation clear.
   - Alternative considered: Allow all controls and rely on backend `sort_in_progress` errors. That produces avoidable error states for users.
 
+- Apply the `ui-ux-pro-max` skill during implementation.
+  - Rationale: This change directly affects the user's main task flow and visual hierarchy. The skill's discipline should be used to inspect the existing UI, keep the established design language, ensure one clear primary action, and cover responsive, accessible interaction states.
+  - Alternative considered: Treat the change as a mechanical component move. That would risk preserving the current confusion in a different layout instead of deliberately improving the experience.
+
 ## Risks / Trade-offs
 
 - Running sort state can be unmounted if the user navigates to settings while sorting -> Keep settings accessible, but ensure returning to albums does not accidentally start a second sort; if preserving live progress across settings navigation is required, keep active sort state in `App` and render progress only on the albums tab.
 - `SortProgress` currently calls `startSort` on mount -> Ensure inline rendering mounts it exactly once per user sort request to avoid duplicate start requests.
 - Removing the sorting tab changes navigation expectations -> Keep completion feedback and a clear `Done` action inline so users know the operation reached a terminal state.
 - Inline progress may crowd the album toolbar on small screens -> Style progress as a full-width card below or adjacent to the toolbar, with responsive stacking.
+- UI polish may expand scope beyond the requested flow change -> Use `ui-ux-pro-max` only to improve the inline progress integration within existing patterns, not to redesign unrelated screens.

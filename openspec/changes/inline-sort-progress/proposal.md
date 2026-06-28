@@ -25,4 +25,5 @@ Showing sort progress in a separate tab adds unnecessary navigation during the m
 - Album selection UI in `frontend/src/components/AlbumPicker.tsx` may render progress controls or embed the existing progress component near the sort button.
 - Sort progress UI in `frontend/src/components/SortProgress.tsx` may be adjusted to support inline rendering while preserving displayed data.
 - Frontend styles in `frontend/src/styles/index.css` may need layout updates.
+- Implementation should use the `ui-ux-pro-max` skill to preserve the existing visual system while improving hierarchy, accessibility, and responsive behavior for the inline progress area.
 - No backend API, database, or dependency changes are expected.
