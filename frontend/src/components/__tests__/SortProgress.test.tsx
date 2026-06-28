@@ -93,6 +93,25 @@ describe('SortProgress', () => {
     expect(screen.getByText(/5 \/ 10 files/)).toBeInTheDocument();
   });
 
+  it('reconnects to progress without starting a duplicate sort when already started', async () => {
+    render(
+      <SortProgress
+        albumIds={['a1']}
+        hasStarted={true}
+        onComplete={vi.fn()}
+        onSessionExpired={vi.fn()}
+        onAppExpired={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/waiting for progress data/i)).toBeInTheDocument();
+    });
+
+    expect(mockStartSort).not.toHaveBeenCalled();
+    expect(getMockEventSource()).toBeDefined();
+  });
+
   it('shows current file and album', async () => {
     mockStartSort.mockResolvedValue({ total_files: 10 });
 

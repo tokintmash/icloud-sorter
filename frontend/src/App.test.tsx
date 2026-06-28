@@ -164,7 +164,7 @@ describe('App', () => {
     });
     const nav = screen.getByRole('navigation');
     expect(nav).toHaveTextContent('Albums');
-    expect(nav).toHaveTextContent('Sorting');
+    expect(nav).not.toHaveTextContent('Sorting');
     expect(nav).toHaveTextContent('Settings');
   });
 

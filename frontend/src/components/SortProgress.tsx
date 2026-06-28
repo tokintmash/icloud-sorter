@@ -5,6 +5,8 @@ import type { SortProgressEvent } from '../types/api';
 
 interface SortProgressProps {
   readonly albumIds: string[];
+  readonly hasStarted?: boolean;
+  readonly onStarted?: () => void;
   readonly onComplete: () => void;
   readonly onSessionExpired: () => void;
   readonly onAppExpired: (message?: string) => void;
@@ -52,12 +54,14 @@ function getCompletionHeading(status: SortProgressEvent['status']): string {
 
 export default function SortProgress({
   albumIds,
+  hasStarted = false,
+  onStarted,
   onComplete,
   onSessionExpired,
   onAppExpired,
 }: SortProgressProps) {
   const [progress, setProgress] = useState<SortProgressEvent | null>(null);
-  const [starting, setStarting] = useState(true);
+  const [starting, setStarting] = useState(!hasStarted);
   const [error, setError] = useState('');
   const [showAllErrors, setShowAllErrors] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -68,7 +72,12 @@ export default function SortProgress({
 
     async function init() {
       try {
-        await startSort(albumIds);
+        if (!hasStarted) {
+          await startSort(albumIds);
+          if (cancelled) return;
+          onStarted?.();
+        }
+
         if (cancelled) return;
         setStarting(false);
 
