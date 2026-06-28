@@ -1,0 +1,18 @@
+## 1. Frontend Flow
+
+- [ ] 1.1 Remove the dedicated `sorting` tab from authenticated navigation and eliminate the empty sorting-tab placeholder state.
+- [ ] 1.2 Update sort start handling so clicking `Sort Selected` keeps the user on the albums tab and records the selected album IDs for inline progress.
+- [ ] 1.3 Ensure settings remains accessible without changing authentication, consent, expiry, or API error handling flows.
+
+## 2. Inline Progress UI
+
+- [ ] 2.1 Render `SortProgress` from the album selection interface near the `Sort Selected` button when a sort request is active.
+- [ ] 2.2 Pass session-expiry and app-expiry callbacks through the inline progress path.
+- [ ] 2.3 Keep terminal completion or error results visible inline until the user dismisses them with the existing completion action.
+- [ ] 2.4 Prevent duplicate or conflicting sort starts while inline progress is starting, running, or awaiting dismissal.
+
+## 3. Styling And Verification
+
+- [ ] 3.1 Adjust CSS so inline progress appears as a clear full-width section or card near the album toolbar on desktop and mobile.
+- [ ] 3.2 Verify album selection, sort start, progress updates, terminal completion, error display, settings navigation, and expiry/session handling still behave correctly.
+- [ ] 3.3 Run `cd frontend && npm run build` and fix any TypeScript or build failures.
