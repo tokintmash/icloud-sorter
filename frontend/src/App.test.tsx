@@ -23,13 +23,14 @@ vi.mock('./hooks/useApi', () => ({
   },
 }));
 
-import { getSession, getBetaStatus, getAlbums, getSettings, login, ApiError } from './hooks/useApi';
+import { getSession, getBetaStatus, getAlbums, getSettings, login, startSort, ApiError } from './hooks/useApi';
 
 const mockGetSession = vi.mocked(getSession);
 const mockGetBetaStatus = vi.mocked(getBetaStatus);
 const mockGetAlbums = vi.mocked(getAlbums);
 const mockGetSettings = vi.mocked(getSettings);
 const mockLogin = vi.mocked(login);
+const mockStartSort = vi.mocked(startSort);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -185,5 +186,30 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue('/test')).toBeInTheDocument();
     });
+  });
+
+  it('does not restart sorting when settings is opened during sort start', async () => {
+    mockGetSession.mockResolvedValue({ authenticated: true, apple_id: 'test@apple.com', requires_2fa: false });
+    mockGetAlbums.mockResolvedValue({
+      albums: [{ id: 'a1', name: 'Vacation', asset_count: 10, folder_name: 'Vacation' }],
+    });
+    mockGetSettings.mockResolvedValue({ icloud_folder: '/test', duplicate_handling: 'move_only' });
+    mockStartSort.mockReturnValue(new Promise(() => {}));
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    await user.click(await screen.findByRole('checkbox'));
+    await user.click(screen.getByRole('button', { name: /sort selected/i }));
+
+    await waitFor(() => {
+      expect(mockStartSort).toHaveBeenCalledTimes(1);
+    });
+
+    await user.click(screen.getByRole('button', { name: /settings/i }));
+    await screen.findByDisplayValue('/test');
+    await user.click(screen.getByRole('button', { name: /albums/i }));
+
+    expect(mockStartSort).toHaveBeenCalledTimes(1);
   });
 });

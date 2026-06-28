@@ -194,7 +194,7 @@ export default function App() {
         </button>
       </nav>
       <main>
-        {activeTab === 'albums' && (
+        <div hidden={activeTab !== 'albums'}>
           <AlbumPicker
             onSessionExpired={handleSessionExpired}
             onAppExpired={handleAppExpired}
@@ -203,7 +203,7 @@ export default function App() {
             onSortStarted={handleSortStarted}
             onSortComplete={handleSortComplete}
           />
-        )}
+        </div>
         {activeTab === 'settings' && <Settings onAppExpired={handleAppExpired} />}
       </main>
     </div>
